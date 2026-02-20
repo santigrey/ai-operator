@@ -18,3 +18,11 @@ timeline
               : Request logging middleware (run_id + timing)
     Next       : Phase I Freeze + Tag
               : Phase II begins (task queue + workers + agent profiles)
+
+## Canonical Anchors
+
+These commit SHAs are the authoritative Phase I runtime reference points.
+
+- ai-operator (canonical brain): `47c1456`
+- control-plane-lab (runtime core): `b30201e`  # Observability: request logging middleware with run_id + timing
+
