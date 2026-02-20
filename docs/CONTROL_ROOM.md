@@ -17,3 +17,11 @@ This file is the continuity anchor for AI Operator + career conversion.
 - Changed: Canonical brain docs created, repo published, branches standardized.
 - Next: Begin Phase I — Agent Runtime Core (memory -> inference -> tools -> loop).
 - Blockers: None.
+## Milestone – Agent Runtime v1
+- Single-step tool execution loop implemented
+- Tools integrated behind INCLUDE_TOOLS flag
+- Health/readiness probes validated
+- Packaging boundaries established
+- System stable
+
+Status: Phase I complete
