@@ -25,3 +25,8 @@ This file is the continuity anchor for AI Operator + career conversion.
 - System stable
 
 Status: Phase I complete
+
+## 2026-02-20 — Phase I milestone: Normalized events live
+- Orchestrator persists EVENT envelopes (remember/tool/response)
+- Verified in Postgres: remember_phrase stored as EVENT JSON
+- Tools registry committed; systemd service healthy; /readyz green
