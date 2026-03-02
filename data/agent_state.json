@@ -1,0 +1,7 @@
+{
+  "project": "Agent OS – Foundation Phase",
+  "canonical_repo": "santigrey/ai-operator",
+  "command_center": "Mac-mini.local",
+  "status": "FORMING",
+  "last_updated": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
