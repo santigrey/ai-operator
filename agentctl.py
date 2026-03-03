@@ -68,10 +68,14 @@ def walk_repo(root: str):
             full = os.path.join(dirpath, fn)
             try:
                 st = os.stat(full)
+                mtime_epoch = int(st.st_mtime)
+                if mtime_epoch < 946684800:
+                    # Ignore invalid/pre-2000 timestamps to avoid skewed oldest/newest reports.
+                    continue
                 yield {
                     "path": os.path.join(rel_dir, fn) if rel_dir else fn,
                     "bytes": st.st_size,
-                    "mtime_epoch": int(st.st_mtime),
+                    "mtime_epoch": mtime_epoch,
                 }
             except FileNotFoundError:
                 continue
@@ -177,6 +181,89 @@ def cmd_timeline(args):
     print(f"OK: wrote {out_path} ({len(items)} files scanned, showing {min(args.max_rows, len(items))})")
 
 
+def collect_project_stats(root: str):
+    projects = []
+
+    for entry in sorted(os.listdir(root)):
+        project_path = os.path.join(root, entry)
+        if not os.path.isdir(project_path) or should_skip_dir(entry):
+            continue
+
+        file_count = 0
+        oldest = None
+        newest = None
+
+        for dirpath, dirnames, filenames in os.walk(project_path):
+            dirnames[:] = [d for d in dirnames if not should_skip_dir(d)]
+            for fn in filenames:
+                if fn == ".DS_Store":
+                    continue
+                full = os.path.join(dirpath, fn)
+                try:
+                    st = os.stat(full)
+                except OSError:
+                    # Skip files that vanish or cannot be stat-ed.
+                    continue
+
+                file_count += 1
+                mtime = int(st.st_mtime)
+                if mtime < 946684800:
+                    continue
+                if oldest is None or mtime < oldest:
+                    oldest = mtime
+                if newest is None or mtime > newest:
+                    newest = mtime
+
+        # Keep project rows even if currently empty
+        projects.append(
+            {
+                "project": entry,
+                "file_count": file_count,
+                "oldest": oldest if oldest is not None else 0,
+                "newest": newest if newest is not None else 0,
+            }
+        )
+
+    projects.sort(key=lambda x: x["newest"], reverse=True)
+    return projects
+
+
+def format_projects_markdown(projects):
+    lines = []
+    lines.append("# Project Summary")
+    lines.append("| Project | File Count | Oldest (epoch) | Newest (epoch) |")
+    lines.append("|---|---:|---:|---:|")
+
+    for p in projects:
+        lines.append(
+            f"| `{p['project']}` | {p['file_count']} | {p['oldest']} | {p['newest']} |"
+        )
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def cmd_projects(args):
+    state = load_state()
+    state = touch_state_timestamp(state)
+    save_state(state)
+
+    root = args.root
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    os.makedirs("reports", exist_ok=True)
+
+    projects = collect_project_stats(root)
+    md = format_projects_markdown(projects)
+
+    out_path = os.path.join("reports", "projects.md")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(md)
+
+    print(f"OK: wrote {out_path} ({len(projects)} projects)")
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="agentctl", description="Agent OS runner (foundation)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -192,6 +279,10 @@ def build_parser():
     p_timeline.add_argument("--root", required=True, help="Root folder to scan")
     p_timeline.add_argument("--max-rows", type=int, default=300, help="Max rows in newest-files table (default: 300)")
     p_timeline.set_defaults(func=cmd_timeline)
+
+    p_projects = sub.add_parser("projects", help="Generate reports/projects.md (top-level project summary)")
+    p_projects.add_argument("--root", required=True, help="Root folder containing top-level project folders")
+    p_projects.set_defaults(func=cmd_projects)
 
     return p
 
