@@ -7,6 +7,7 @@ from datetime import datetime
 from collections import Counter
 
 STATE_PATH = os.path.join("data", "agent_state.json")
+MAX_MD_BYTES = 50 * 1024
 
 
 def load_state():
@@ -77,7 +78,7 @@ def walk_repo(root: str):
                     "bytes": st.st_size,
                     "mtime_epoch": mtime_epoch,
                 }
-            except FileNotFoundError:
+            except OSError:
                 continue
 
 
@@ -127,19 +128,64 @@ def _folder_bucket(path: str) -> str:
     return parts[0] if len(parts) >= 2 else "(root)"
 
 
-def classify_project_name(name: str) -> str:
+def _read_project_markdown_corpus(project_path: str) -> str:
+    chunks = []
+    try:
+        entries = sorted(os.listdir(project_path))
+    except OSError:
+        return ""
+
+    for name in entries:
+        full = os.path.join(project_path, name)
+        if not os.path.isfile(full):
+            continue
+        if not name.lower().endswith(".md"):
+            continue
+        try:
+            with open(full, "r", encoding="utf-8", errors="ignore") as f:
+                chunks.append(f.read(MAX_MD_BYTES))
+        except OSError:
+            continue
+
+    return "\n".join(chunks).lower()
+
+
+def classify_project_name(name: str):
     lname = name.lower()
     if any(k in lname for k in ("vector", "server", "infra", "ascension")):
-        return "AI Infra"
+        return "AI Infra", "name:vector/server/infra/ascension"
     if any(k in lname for k in ("agent", "operator", "architect")):
-        return "Agents"
+        return "Agents", "name:agent/operator/architect"
     if any(k in lname for k in ("career", "training", "resume")):
-        return "Career"
+        return "Career", "name:career/training/resume"
     if "venice" in lname:
-        return "Venice"
+        return "Venice", "name:venice"
     if "playground" in lname:
-        return "Playgroud"
-    return "Notes"
+        return "Playgroud", "name:playground"
+    return "Notes", "name:default"
+
+
+def classify_project(project_name: str, project_path: str):
+    lname = project_name.lower()
+    if any(k in lname for k in ("career", "training", "resume")):
+        return "Career", "name:career_override"
+
+    corpus = _read_project_markdown_corpus(project_path)
+
+    # Content-based signals take priority over name-based rules.
+    for k in ("docker", "kubernetes", "infrastructure", "cluster", "homelab", "server"):
+        if k in corpus:
+            return "AI Infra", f"content:{k}"
+    for k in ("agent", "orchestration", "llm", "rag", "vector database"):
+        if k in corpus:
+            return "Agents", f"content:{k}"
+    if "venice" in corpus:
+        return "Venice", "content:venice"
+    for k in ("experiment", "playground", "prototype"):
+        if k in corpus:
+            return "Playgroud", f"content:{k}"
+
+    return classify_project_name(project_name)
 
 
 def format_timeline_markdown(items, root: str, max_rows: int):
@@ -229,11 +275,12 @@ def collect_project_stats(root: str):
                 if newest is None or mtime > newest:
                     newest = mtime
 
-        # Keep project rows even if currently empty
+        category, reason = classify_project(entry, project_path)
         projects.append(
             {
                 "project": entry,
-                "category": classify_project_name(entry),
+                "category": category,
+                "reason": reason,
                 "file_count": file_count,
                 "oldest": oldest if oldest is not None else 0,
                 "newest": newest if newest is not None else 0,
@@ -266,21 +313,21 @@ def format_overview_markdown(projects):
     lines.append("")
     lines.append("## Evolution timeline (projects by start date)")
     lines.append("")
-    lines.append("| Project | Category | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
-    lines.append("|---|---|---:|---:|---:|---|")
+    lines.append("| Project | Category | Reason | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---|---|---:|---:|---:|---|")
     for p in sorted(projects, key=lambda x: x["oldest"]):
         lines.append(
-            f"| `{p['project']}` | `{p['category']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
+            f"| `{p['project']}` | `{p['category']}` | `{p['reason']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
         )
 
     lines.append("")
     lines.append("## Current activity (projects by latest update)")
     lines.append("")
-    lines.append("| Project | Category | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
-    lines.append("|---|---|---:|---:|---:|---|")
+    lines.append("| Project | Category | Reason | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---|---|---:|---:|---:|---|")
     for p in sorted(projects, key=lambda x: x["newest"], reverse=True):
         lines.append(
-            f"| `{p['project']}` | `{p['category']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
+            f"| `{p['project']}` | `{p['category']}` | `{p['reason']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
         )
 
     lines.append("")
