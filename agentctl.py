@@ -127,6 +127,21 @@ def _folder_bucket(path: str) -> str:
     return parts[0] if len(parts) >= 2 else "(root)"
 
 
+def classify_project_name(name: str) -> str:
+    lname = name.lower()
+    if any(k in lname for k in ("vector", "server", "infra", "ascension")):
+        return "AI Infra"
+    if any(k in lname for k in ("agent", "operator", "architect")):
+        return "Agents"
+    if any(k in lname for k in ("career", "training", "resume")):
+        return "Career"
+    if "venice" in lname:
+        return "Venice"
+    if "playground" in lname:
+        return "Playgroud"
+    return "Notes"
+
+
 def format_timeline_markdown(items, root: str, max_rows: int):
     # Sort newest -> oldest
     items_sorted = sorted(items, key=lambda x: x["mtime_epoch"], reverse=True)
@@ -218,6 +233,7 @@ def collect_project_stats(root: str):
         projects.append(
             {
                 "project": entry,
+                "category": classify_project_name(entry),
                 "file_count": file_count,
                 "oldest": oldest if oldest is not None else 0,
                 "newest": newest if newest is not None else 0,
@@ -232,12 +248,12 @@ def collect_project_stats(root: str):
 def format_projects_markdown(projects):
     lines = []
     lines.append("# Project Summary")
-    lines.append("| Project | File Count | Oldest (epoch) | Newest (epoch) |")
-    lines.append("|---|---:|---:|---:|")
+    lines.append("| Project | Category | File Count | Oldest (epoch) | Newest (epoch) |")
+    lines.append("|---|---|---:|---:|---:|")
 
     for p in projects:
         lines.append(
-            f"| `{p['project']}` | {p['file_count']} | {p['oldest']} | {p['newest']} |"
+            f"| `{p['project']}` | `{p['category']}` | {p['file_count']} | {p['oldest']} | {p['newest']} |"
         )
 
     lines.append("")
@@ -250,21 +266,21 @@ def format_overview_markdown(projects):
     lines.append("")
     lines.append("## Evolution timeline (projects by start date)")
     lines.append("")
-    lines.append("| Project | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
-    lines.append("|---|---:|---:|---:|---|")
+    lines.append("| Project | Category | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---|---:|---:|---:|---|")
     for p in sorted(projects, key=lambda x: x["oldest"]):
         lines.append(
-            f"| `{p['project']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
+            f"| `{p['project']}` | `{p['category']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
         )
 
     lines.append("")
     lines.append("## Current activity (projects by latest update)")
     lines.append("")
-    lines.append("| Project | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
-    lines.append("|---|---:|---:|---:|---|")
+    lines.append("| Project | Category | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---|---:|---:|---:|---|")
     for p in sorted(projects, key=lambda x: x["newest"], reverse=True):
         lines.append(
-            f"| `{p['project']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
+            f"| `{p['project']}` | `{p['category']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
         )
 
     lines.append("")
