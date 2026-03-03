@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 from datetime import datetime
+from collections import Counter
 
 STATE_PATH = os.path.join("data", "agent_state.json")
 
@@ -27,7 +28,6 @@ def utc_now_iso():
         from datetime import UTC  # Python 3.11+
         return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     except Exception:
-        # Fallback: still produce UTC-ish timestamp without raising
         return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
@@ -56,7 +56,6 @@ def should_skip_dir(dirname: str) -> bool:
 
 def walk_repo(root: str):
     for dirpath, dirnames, filenames in os.walk(root):
-        # Prune unwanted dirs
         dirnames[:] = [d for d in dirnames if not should_skip_dir(d)]
 
         rel_dir = os.path.relpath(dirpath, root)
@@ -118,6 +117,66 @@ def cmd_scan(args):
     print(f"OK: wrote {out_path} ({len(items)} files)")
 
 
+def _folder_bucket(path: str) -> str:
+    # Bucket by top-level folder if present, else "(root)"
+    parts = [p for p in path.split(os.sep) if p]
+    return parts[0] if len(parts) >= 2 else "(root)"
+
+
+def format_timeline_markdown(items, root: str, max_rows: int):
+    # Sort newest -> oldest
+    items_sorted = sorted(items, key=lambda x: x["mtime_epoch"], reverse=True)
+
+    hot = Counter()
+    for it in items:
+        hot[_folder_bucket(it["path"])] += 1
+
+    lines = []
+    lines.append("# Timeline Report")
+    lines.append("")
+    lines.append(f"- Root: `{os.path.abspath(root)}`")
+    lines.append(f"- Generated (UTC): `{utc_now_iso()}`")
+    lines.append("")
+
+    lines.append("## Top hot folders (by file count)")
+    lines.append("")
+    lines.append("| Folder | Files |")
+    lines.append("|---|---:|")
+    for folder, cnt in hot.most_common(20):
+        lines.append(f"| `{folder}` | {cnt} |")
+    lines.append("")
+
+    lines.append(f"## Newest files (top {max_rows})")
+    lines.append("")
+    lines.append("| Modified (epoch) | Size (bytes) | Path |")
+    lines.append("|---:|---:|---|")
+    for it in items_sorted[:max_rows]:
+        lines.append(f"| {it['mtime_epoch']} | {it['bytes']} | `{it['path']}` |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def cmd_timeline(args):
+    state = load_state()
+    state = touch_state_timestamp(state)
+    save_state(state)
+
+    root = args.root
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    os.makedirs("reports", exist_ok=True)
+
+    items = list(walk_repo(root))
+    md = format_timeline_markdown(items, root, max_rows=args.max_rows)
+
+    out_path = os.path.join("reports", "timeline.md")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(md)
+
+    print(f"OK: wrote {out_path} ({len(items)} files scanned, showing {min(args.max_rows, len(items))})")
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="agentctl", description="Agent OS runner (foundation)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -128,6 +187,11 @@ def build_parser():
     p_scan = sub.add_parser("scan", help="Scan a root folder and generate reports/inventory.md")
     p_scan.add_argument("--root", default=".", help="Root folder to scan (default: current dir)")
     p_scan.set_defaults(func=cmd_scan)
+
+    p_timeline = sub.add_parser("timeline", help="Generate reports/timeline.md (newest files + hot folders)")
+    p_timeline.add_argument("--root", required=True, help="Root folder to scan")
+    p_timeline.add_argument("--max-rows", type=int, default=300, help="Max rows in newest-files table (default: 300)")
+    p_timeline.set_defaults(func=cmd_timeline)
 
     return p
 
