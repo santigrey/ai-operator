@@ -221,6 +221,7 @@ def collect_project_stats(root: str):
                 "file_count": file_count,
                 "oldest": oldest if oldest is not None else 0,
                 "newest": newest if newest is not None else 0,
+                "abs_path": os.path.abspath(project_path),
             }
         )
 
@@ -237,6 +238,33 @@ def format_projects_markdown(projects):
     for p in projects:
         lines.append(
             f"| `{p['project']}` | {p['file_count']} | {p['oldest']} | {p['newest']} |"
+        )
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def format_overview_markdown(projects):
+    lines = []
+    lines.append("# Project Overview")
+    lines.append("")
+    lines.append("## Evolution timeline (projects by start date)")
+    lines.append("")
+    lines.append("| Project | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---:|---:|---:|---|")
+    for p in sorted(projects, key=lambda x: x["oldest"]):
+        lines.append(
+            f"| `{p['project']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
+        )
+
+    lines.append("")
+    lines.append("## Current activity (projects by latest update)")
+    lines.append("")
+    lines.append("| Project | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---:|---:|---:|---|")
+    for p in sorted(projects, key=lambda x: x["newest"], reverse=True):
+        lines.append(
+            f"| `{p['project']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
         )
 
     lines.append("")
@@ -264,6 +292,27 @@ def cmd_projects(args):
     print(f"OK: wrote {out_path} ({len(projects)} projects)")
 
 
+def cmd_overview(args):
+    state = load_state()
+    state = touch_state_timestamp(state)
+    save_state(state)
+
+    root = args.root
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    os.makedirs("reports", exist_ok=True)
+
+    projects = collect_project_stats(root)
+    md = format_overview_markdown(projects)
+
+    out_path = os.path.join("reports", "overview.md")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(md)
+
+    print(f"OK: wrote {out_path} ({len(projects)} projects)")
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="agentctl", description="Agent OS runner (foundation)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -283,6 +332,10 @@ def build_parser():
     p_projects = sub.add_parser("projects", help="Generate reports/projects.md (top-level project summary)")
     p_projects.add_argument("--root", required=True, help="Root folder containing top-level project folders")
     p_projects.set_defaults(func=cmd_projects)
+
+    p_overview = sub.add_parser("overview", help="Generate reports/overview.md (timeline + current activity)")
+    p_overview.add_argument("--root", required=True, help="Root folder containing top-level project folders")
+    p_overview.set_defaults(func=cmd_overview)
 
     return p
 
