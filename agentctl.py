@@ -3,11 +3,13 @@
 import argparse
 import json
 import os
+import shlex
 from datetime import datetime
 from collections import Counter
 
 STATE_PATH = os.path.join("data", "agent_state.json")
 MAX_MD_BYTES = 50 * 1024
+DEFAULT_TIMELINE_MAX_ROWS = 300
 
 
 def load_state():
@@ -188,6 +190,73 @@ def classify_project(project_name: str, project_path: str):
     return classify_project_name(project_name)
 
 
+CANONICAL_FOLDERS = ["AI_Infra", "Agents", "Career", "Venice", "Playground", "Notes"]
+
+
+def category_to_folder(category: str) -> str:
+    mapping = {
+        "AI Infra": "AI_Infra",
+        "Agents": "Agents",
+        "Career": "Career",
+        "Venice": "Venice",
+        "Playgroud": "Playground",
+        "Playground": "Playground",
+        "Notes": "Notes",
+    }
+    return mapping.get(category, "Notes")
+
+
+def cmd_restructure(args):
+    state = load_state()
+    state = touch_state_timestamp(state)
+    save_state(state)
+
+    root = os.path.abspath(args.root)
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    os.makedirs("reports", exist_ok=True)
+
+    existing_dirs = {
+        name for name in os.listdir(root) if os.path.isdir(os.path.join(root, name))
+    }
+    mkdir_needed = [name for name in CANONICAL_FOLDERS if name not in existing_dirs]
+
+    move_cmds = []
+    for entry in sorted(os.listdir(root)):
+        project_path = os.path.join(root, entry)
+        if not os.path.isdir(project_path) or should_skip_dir(entry):
+            continue
+        if entry in CANONICAL_FOLDERS:
+            continue
+
+        category, _reason = classify_project(entry, project_path)
+        category_folder = category_to_folder(category)
+        dst = os.path.join(root, category_folder, entry)
+        move_cmds.append(
+            f"mv {shlex.quote(project_path)} {shlex.quote(dst)}"
+        )
+
+    plan_lines = ["#!/bin/bash", "set -e"]
+    for folder in mkdir_needed:
+        plan_lines.append(f"mkdir -p {shlex.quote(os.path.join(root, folder))}")
+    plan_lines.extend(move_cmds)
+    plan_lines.append("")
+
+    plan_path = os.path.join("reports", "restructure_plan.sh")
+    with open(plan_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(plan_lines))
+
+    if not args.dry_run:
+        for folder in mkdir_needed:
+            os.makedirs(os.path.join(root, folder), exist_ok=True)
+        for cmd in move_cmds:
+            os.system(cmd)
+
+    print(f"OK: wrote {plan_path}")
+    print(f"Moves: {len(move_cmds)}")
+
+
 def format_timeline_markdown(items, root: str, max_rows: int):
     # Sort newest -> oldest
     items_sorted = sorted(items, key=lambda x: x["mtime_epoch"], reverse=True)
@@ -242,12 +311,15 @@ def cmd_timeline(args):
     print(f"OK: wrote {out_path} ({len(items)} files scanned, showing {min(args.max_rows, len(items))})")
 
 
-def collect_project_stats(root: str):
+def collect_project_stats(root: str, skip_project_names=None):
     projects = []
+    skip_names = set(skip_project_names or [])
 
     for entry in sorted(os.listdir(root)):
         project_path = os.path.join(root, entry)
         if not os.path.isdir(project_path) or should_skip_dir(entry):
+            continue
+        if entry in skip_names:
             continue
 
         file_count = 0
@@ -376,6 +448,112 @@ def cmd_overview(args):
     print(f"OK: wrote {out_path} ({len(projects)} projects)")
 
 
+def _format_overview_tables_only(projects):
+    lines = []
+    lines.append("### Evolution timeline (projects by start date)")
+    lines.append("")
+    lines.append("| Project | Category | Reason | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---|---|---:|---:|---:|---|")
+    for p in sorted(projects, key=lambda x: x["oldest"]):
+        lines.append(
+            f"| `{p['project']}` | `{p['category']}` | `{p['reason']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
+        )
+
+    lines.append("")
+    lines.append("### Current activity (projects by latest update)")
+    lines.append("")
+    lines.append("| Project | Category | Reason | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |")
+    lines.append("|---|---|---|---:|---:|---:|---|")
+    for p in sorted(projects, key=lambda x: x["newest"], reverse=True):
+        lines.append(
+            f"| `{p['project']}` | `{p['category']}` | `{p['reason']}` | {p['file_count']} | {p['oldest']} | {p['newest']} | `{p['abs_path']}` |"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_overview_all_markdown(root: str):
+    lines = []
+    lines.append("# Project Overview (All Categories)")
+    lines.append("")
+
+    categories_written = 0
+    total_projects = 0
+    for category in CANONICAL_FOLDERS:
+        category_path = os.path.join(root, category)
+        if not os.path.isdir(category_path):
+            continue
+
+        projects = collect_project_stats(category_path, skip_project_names={"Inbox"})
+        categories_written += 1
+        total_projects += len(projects)
+
+        lines.append(f"## Category: {category}")
+        lines.append("")
+        lines.append(_format_overview_tables_only(projects))
+
+    return "\n".join(lines), total_projects, categories_written
+
+
+def cmd_overview_all(args):
+    state = load_state()
+    state = touch_state_timestamp(state)
+    save_state(state)
+
+    root = args.root
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    os.makedirs("reports", exist_ok=True)
+
+    md, total_projects, categories_written = build_overview_all_markdown(root)
+
+    out_path = os.path.join("reports", "overview_all.md")
+    with open(out_path, "w", encoding="utf-8") as f:
+        f.write(md)
+
+    print(
+        f"OK: wrote {out_path} ({total_projects} projects across {categories_written} categories)"
+    )
+
+
+def cmd_refresh(args):
+    state = load_state()
+    state = touch_state_timestamp(state)
+    save_state(state)
+
+    root = args.root
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    os.makedirs("reports", exist_ok=True)
+
+    items = list(walk_repo(root))
+
+    inventory_md = format_inventory_markdown(items, root)
+    inventory_path = os.path.join("reports", "inventory.md")
+    with open(inventory_path, "w", encoding="utf-8") as f:
+        f.write(inventory_md)
+
+    timeline_md = format_timeline_markdown(items, root, max_rows=DEFAULT_TIMELINE_MAX_ROWS)
+    timeline_path = os.path.join("reports", "timeline.md")
+    with open(timeline_path, "w", encoding="utf-8") as f:
+        f.write(timeline_md)
+
+    overview_all_md, total_projects, categories_written = build_overview_all_markdown(root)
+    overview_all_path = os.path.join("reports", "overview_all.md")
+    with open(overview_all_path, "w", encoding="utf-8") as f:
+        f.write(overview_all_md)
+
+    print(f"OK: wrote {inventory_path} ({len(items)} files)")
+    print(
+        f"OK: wrote {timeline_path} ({len(items)} files scanned, showing {min(DEFAULT_TIMELINE_MAX_ROWS, len(items))})"
+    )
+    print(
+        f"OK: wrote {overview_all_path} ({total_projects} projects across {categories_written} categories)"
+    )
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="agentctl", description="Agent OS runner (foundation)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -389,7 +567,7 @@ def build_parser():
 
     p_timeline = sub.add_parser("timeline", help="Generate reports/timeline.md (newest files + hot folders)")
     p_timeline.add_argument("--root", required=True, help="Root folder to scan")
-    p_timeline.add_argument("--max-rows", type=int, default=300, help="Max rows in newest-files table (default: 300)")
+    p_timeline.add_argument("--max-rows", type=int, default=DEFAULT_TIMELINE_MAX_ROWS, help="Max rows in newest-files table (default: 300)")
     p_timeline.set_defaults(func=cmd_timeline)
 
     p_projects = sub.add_parser("projects", help="Generate reports/projects.md (top-level project summary)")
@@ -399,6 +577,19 @@ def build_parser():
     p_overview = sub.add_parser("overview", help="Generate reports/overview.md (timeline + current activity)")
     p_overview.add_argument("--root", required=True, help="Root folder containing top-level project folders")
     p_overview.set_defaults(func=cmd_overview)
+
+    p_overview_all = sub.add_parser("overview-all", help="Generate reports/overview_all.md across canonical category folders")
+    p_overview_all.add_argument("--root", required=True, help="Canonical AI root containing category folders")
+    p_overview_all.set_defaults(func=cmd_overview_all)
+
+    p_refresh = sub.add_parser("refresh", help="Generate inventory, timeline, and overview_all reports")
+    p_refresh.add_argument("--root", required=True, help="Canonical AI root containing category folders")
+    p_refresh.set_defaults(func=cmd_refresh)
+
+    p_restructure = sub.add_parser("restructure", help="Generate (or apply) category-based project move plan")
+    p_restructure.add_argument("--root", required=True, help="Root folder containing top-level project folders")
+    p_restructure.add_argument("--dry-run", action="store_true", help="Write plan only, do not move anything")
+    p_restructure.set_defaults(func=cmd_restructure)
 
     return p
 
