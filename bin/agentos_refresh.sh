@@ -41,7 +41,7 @@ log "START refresh"
 
 cd "$REPO" || { log "END refresh (rc=1 cd-failed)"; exit 1; }
 
-# --- Pre-flight: verify iCloud root is accessible (stalls in launchd without GUI session) ---
+# --- Pre-flight: verify iCloud root is accessible ---
 /bin/ls "$CLOUD_ROOT" >/dev/null 2>&1 &
 _ls_pid=$!
 ( sleep "$PREFLIGHT_SECS"; kill "$_ls_pid" 2>/dev/null ) &

@@ -6,8 +6,8 @@
 	<string>com.sloan.agentos.refresh</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/bin/zsh</string>
-		<string>/Users/jes/AI_Agent_OS/bin/agentos_refresh.sh</string>
+		<string>/usr/bin/osascript</string>
+		<string>/Users/jes/AI_Agent_OS/AgentOSRefresh.app/Contents/Resources/Scripts/main.scpt</string>
 	</array>
 	<key>LimitLoadToSessionType</key>
 	<string>Aqua</string>
@@ -17,9 +17,5 @@
 	<integer>900</integer>
 	<key>WorkingDirectory</key>
 	<string>/Users/jes/AI_Agent_OS</string>
-	<key>StandardOutPath</key>
-	<string>/Users/jes/AI_Agent_OS/reports/launchagent.log</string>
-	<key>StandardErrorPath</key>
-	<string>/Users/jes/AI_Agent_OS/reports/launchagent.error.log</string>
 </dict>
 </plist>
