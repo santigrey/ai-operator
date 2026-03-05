@@ -44,8 +44,9 @@ def log(message: str):
     print(message, flush=True)
 
 
-def listdir_sorted(path: str):
-    log(f"ENTER dir: {path}")
+def listdir_sorted(path: str, verbose: bool = True):
+    if verbose:
+        log(f"ENTER dir: {path}")
     return sorted(os.listdir(path))
 
 
@@ -152,10 +153,10 @@ def _folder_bucket(path: str) -> str:
     return parts[0] if len(parts) >= 2 else "(root)"
 
 
-def _read_project_markdown_corpus(project_path: str) -> str:
+def _read_project_markdown_corpus(project_path: str, verbose: bool = True) -> str:
     chunks = []
     try:
-        entries = listdir_sorted(project_path)
+        entries = listdir_sorted(project_path, verbose=verbose)
     except OSError:
         return ""
 
@@ -189,12 +190,12 @@ def classify_project_name(name: str):
     return "Notes", "name:default"
 
 
-def classify_project(project_name: str, project_path: str):
+def classify_project(project_name: str, project_path: str, verbose: bool = True):
     lname = project_name.lower()
     if any(k in lname for k in ("career", "training", "resume")):
         return "Career", "name:career_override"
 
-    corpus = _read_project_markdown_corpus(project_path)
+    corpus = _read_project_markdown_corpus(project_path, verbose=verbose)
 
     # Content-based signals take priority over name-based rules.
     for k in ("docker", "kubernetes", "infrastructure", "cluster", "homelab", "server"):
@@ -334,11 +335,11 @@ def cmd_timeline(args):
     print(f"OK: wrote {out_path} ({len(items)} files scanned, showing {min(args.max_rows, len(items))})")
 
 
-def collect_project_stats(root: str, skip_project_names=None):
+def collect_project_stats(root: str, skip_project_names=None, verbose: bool = True):
     projects = []
     skip_names = set(skip_project_names or [])
 
-    for entry in listdir_sorted(root):
+    for entry in listdir_sorted(root, verbose=verbose):
         project_path = os.path.join(root, entry)
         if not os.path.isdir(project_path) or should_skip_dir(entry):
             continue
@@ -370,7 +371,7 @@ def collect_project_stats(root: str, skip_project_names=None):
                 if newest is None or mtime > newest:
                     newest = mtime
 
-        category, reason = classify_project(entry, project_path)
+        category, reason = classify_project(entry, project_path, verbose=verbose)
         projects.append(
             {
                 "project": entry,
@@ -495,7 +496,7 @@ def _format_overview_tables_only(projects):
     return "\n".join(lines)
 
 
-def build_overview_all_markdown(root: str):
+def build_overview_all_markdown(root: str, verbose: bool = True):
     lines = []
     lines.append("# Project Overview (All Categories)")
     lines.append("")
@@ -507,7 +508,7 @@ def build_overview_all_markdown(root: str):
         if not os.path.isdir(category_path):
             continue
 
-        projects = collect_project_stats(category_path, skip_project_names={"Inbox"})
+        projects = collect_project_stats(category_path, skip_project_names={"Inbox"}, verbose=verbose)
         categories_written += 1
         total_projects += len(projects)
 
@@ -563,7 +564,7 @@ def cmd_refresh(args):
     with open(timeline_path, "w", encoding="utf-8") as f:
         f.write(timeline_md)
 
-    overview_all_md, total_projects, categories_written = build_overview_all_markdown(root)
+    overview_all_md, total_projects, categories_written = build_overview_all_markdown(root, verbose=args.verbose)
     overview_all_path = os.path.join("reports", "overview_all.md")
     with open(overview_all_path, "w", encoding="utf-8") as f:
         f.write(overview_all_md)
@@ -607,6 +608,7 @@ def build_parser():
 
     p_refresh = sub.add_parser("refresh", help="Generate inventory, timeline, and overview_all reports")
     p_refresh.add_argument("--root", required=True, help="Canonical AI root containing category folders")
+    p_refresh.add_argument("--verbose", action="store_true", help="Verbose traversal logging")
     p_refresh.set_defaults(func=cmd_refresh)
 
     p_restructure = sub.add_parser("restructure", help="Generate (or apply) category-based project move plan")
