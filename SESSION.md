@@ -4,7 +4,7 @@
 2026-03-05
 
 ## Current Status
-- LaunchAgent: STABLE — 900s interval, 600s timeout, clean START→END
+- Login Item agent (bin/agentos_agent.sh): STABLE — 900s interval, clean START→END
 - Reports generating: inventory.md, timeline.md, overview_all.md
 - 203 files indexed, 10 projects, 6 categories
 - All fixes committed and pushed to main
@@ -12,14 +12,15 @@
 ## Completed This Session
 - Migrated from ChatGPT to Claude + Claude Code
 - Diagnosed and fixed TOCTOU race condition in lock mechanism (mkdir atomic)
-- Added --verbose flag to agentctl.py refresh
-- Raised timeout from 300s to 600s (launchd/iCloud latency fix)
+- Added --verbose flag to agentctl.py refresh (ENTER dir logging now off by default)
+- Raised timeout from 300s to 600s
+- Diagnosed LaunchAgent iCloud access failure (macOS session isolation — iCloud XPC unavailable in launchd context regardless of TCC/FDA)
+- Replaced LaunchAgent with persistent Login Item agent (bin/agentos_agent.sh)
 - Created Claude Project: Project Ascension — Agent OS
 - Established Option 3 continuity system (repo anchors + Claude Project)
 
 ## Pending
 - [ ] Delta report (reports/delta.md) — what changed since last refresh
-- [ ] Silence ENTER dir spam in LaunchAgent logs (--verbose gating confirm)
 - [ ] Vector DB layer on CiscoKid
 - [ ] MCP server wrapper for agentctl
 
@@ -28,6 +29,8 @@ Implement delta report — shows new/changed files since last refresh run.
 
 ## Operating Notes
 - Interactive runs: ~0.4s
-- LaunchAgent runs: slow due to iCloud lazy materialization under launchd
+- Login Item agent runs: ~0.4s (full user session, iCloud accessible)
+- LaunchAgent abandoned: iCloud XPC unavailable in launchd context (EPERM/hang regardless of TCC)
 - Lock: atomic mkdir at reports/.refresh.lockdir
-- Timeout watchdog: /usr/bin/timeout
+- Timeout: 600s via background pid+watchdog (/usr/bin/timeout does not exist on this Mac)
+- Verbosity: refresh default is quiet (3 OK lines); use --verbose for traversal logging
