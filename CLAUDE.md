@@ -31,7 +31,7 @@ python3 agentctl.py <command> [options]
 | `projects --root <dir>` | Per-project file counts and timestamps | `reports/projects.md` |
 | `overview --root <dir>` | Projects sorted by start date + latest activity | `reports/overview.md` |
 | `overview-all --root <dir>` | Same but across all canonical category folders | `reports/overview_all.md` |
-| `refresh --root <dir>` | Run inventory + timeline + overview-all in one shot (with lock) | all three reports |
+| `refresh --root <dir> [--verbose]` | Run inventory + timeline + overview-all in one shot | all three reports |
 | `restructure --root <dir> [--dry-run]` | Generate (or apply) category-based `mv` plan | `reports/restructure_plan.sh` |
 
 ### State File
@@ -55,6 +55,7 @@ Priority order:
 - Lock: `reports/.refresh.lockdir` — atomic `mkdir`-based, always removed on exit via `trap`, treated as stale after 1800s
 - Timeout: 300s via `/usr/bin/timeout` or a background pid+watchdog fallback
 - Lock ownership: the shell script owns the lock entirely; `agentctl.py refresh` has no lock logic
+- Verbosity: default output is 3 OK summary lines only; pass `--verbose` to enable `ENTER dir:` traversal logging. Other commands (`projects`, `overview`, `overview-all`, `restructure`) are always verbose.
 
 ### LaunchAgent plist
 
