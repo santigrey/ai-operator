@@ -9,6 +9,7 @@ __pycache__/
 # Runtime artifacts
 reports/*
 data/agent_state.json
+data/last_scan.json
 *.log
 *.lock
 sample_*.txt

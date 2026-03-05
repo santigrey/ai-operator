@@ -9,6 +9,7 @@ from collections import Counter
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_PATH = os.path.join(BASE_DIR, "data", "agent_state.json")
+SNAPSHOT_PATH = os.path.join(BASE_DIR, "data", "last_scan.json")
 MAX_MD_BYTES = 50 * 1024
 DEFAULT_TIMELINE_MAX_ROWS = 300
 
@@ -24,6 +25,96 @@ def save_state(state):
     os.makedirs(os.path.dirname(STATE_PATH), exist_ok=True)
     with open(STATE_PATH, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2)
+
+
+def load_last_scan():
+    if not os.path.exists(SNAPSHOT_PATH):
+        return None, {}
+    with open(SNAPSHOT_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data.get("timestamp"), {it["path"]: it for it in data.get("files", [])}
+
+
+def save_last_scan(items, timestamp, root):
+    os.makedirs(os.path.dirname(SNAPSHOT_PATH), exist_ok=True)
+    with open(SNAPSHOT_PATH, "w", encoding="utf-8") as f:
+        json.dump({"timestamp": timestamp, "root": os.path.abspath(root), "files": items}, f)
+
+
+def compute_delta(prev_files, curr_items):
+    curr_by_path = {it["path"]: it for it in curr_items}
+    prev_paths = set(prev_files.keys())
+    curr_paths = set(curr_by_path.keys())
+    added = [curr_by_path[p] for p in sorted(curr_paths - prev_paths)]
+    deleted = [prev_files[p] for p in sorted(prev_paths - curr_paths)]
+    modified = [
+        {"path": p, "prev": prev_files[p], "curr": curr_by_path[p]}
+        for p in sorted(curr_paths & prev_paths)
+        if (curr_by_path[p]["mtime_epoch"] != prev_files[p]["mtime_epoch"]
+            or curr_by_path[p]["bytes"] != prev_files[p]["bytes"])
+    ]
+    return {"added": added, "modified": modified, "deleted": deleted}
+
+
+def format_delta_markdown(delta, prev_ts, curr_ts, root):
+    added = delta["added"]
+    modified = delta["modified"]
+    deleted = delta["deleted"]
+
+    lines = []
+    lines.append("# Delta Report")
+    lines.append("")
+    lines.append(f"- Root: `{os.path.abspath(root)}`")
+    lines.append(f"- Previous snapshot: `{prev_ts or 'none (first run)'}`")
+    lines.append(f"- Generated (UTC): `{curr_ts}`")
+    lines.append("")
+    lines.append("## Summary")
+    lines.append("")
+    lines.append("| | Count |")
+    lines.append("|---|---:|")
+    lines.append(f"| Added | {len(added)} |")
+    lines.append(f"| Modified | {len(modified)} |")
+    lines.append(f"| Deleted | {len(deleted)} |")
+    lines.append("")
+
+    lines.append(f"## Added ({len(added)})")
+    lines.append("")
+    if added:
+        lines.append("| Path | Size (bytes) |")
+        lines.append("|---|---:|")
+        for it in added:
+            lines.append(f"| `{it['path']}` | {it['bytes']} |")
+    else:
+        lines.append("*(none)*")
+    lines.append("")
+
+    lines.append(f"## Modified ({len(modified)})")
+    lines.append("")
+    if modified:
+        lines.append("| Path | Bytes | mtime |")
+        lines.append("|---|---|---|")
+        for it in modified:
+            bp, bc = it["prev"]["bytes"], it["curr"]["bytes"]
+            mp, mc = it["prev"]["mtime_epoch"], it["curr"]["mtime_epoch"]
+            b_str = f"{bp} → {bc}" if bp != bc else str(bc)
+            m_str = f"{mp} → {mc}" if mp != mc else str(mc)
+            lines.append(f"| `{it['path']}` | {b_str} | {m_str} |")
+    else:
+        lines.append("*(none)*")
+    lines.append("")
+
+    lines.append(f"## Deleted ({len(deleted)})")
+    lines.append("")
+    if deleted:
+        lines.append("| Path | Size (bytes) |")
+        lines.append("|---|---:|")
+        for it in deleted:
+            lines.append(f"| `{it['path']}` | {it['bytes']} |")
+    else:
+        lines.append("*(none)*")
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def utc_now_iso():
@@ -552,6 +643,9 @@ def cmd_refresh(args):
 
     os.makedirs("reports", exist_ok=True)
 
+    prev_ts, prev_files = load_last_scan()
+    curr_ts = utc_now_iso()
+
     items = list(walk_repo(root))
 
     inventory_md = format_inventory_markdown(items, root)
@@ -569,12 +663,51 @@ def cmd_refresh(args):
     with open(overview_all_path, "w", encoding="utf-8") as f:
         f.write(overview_all_md)
 
+    delta = compute_delta(prev_files, items)
+    delta_md = format_delta_markdown(delta, prev_ts, curr_ts, root)
+    delta_path = os.path.join("reports", "delta.md")
+    with open(delta_path, "w", encoding="utf-8") as f:
+        f.write(delta_md)
+
+    save_last_scan(items, curr_ts, root)
+
     print(f"OK: wrote {inventory_path} ({len(items)} files)")
     print(
         f"OK: wrote {timeline_path} ({len(items)} files scanned, showing {min(DEFAULT_TIMELINE_MAX_ROWS, len(items))})"
     )
     print(
         f"OK: wrote {overview_all_path} ({total_projects} projects across {categories_written} categories)"
+    )
+    print(
+        f"OK: wrote {delta_path} (+{len(delta['added'])} ~{len(delta['modified'])} -{len(delta['deleted'])})"
+    )
+
+
+def cmd_delta(args):
+    state = load_state()
+    state = touch_state_timestamp(state)
+    save_state(state)
+
+    root = args.root
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    os.makedirs("reports", exist_ok=True)
+
+    prev_ts, prev_files = load_last_scan()
+    curr_ts = utc_now_iso()
+    items = list(walk_repo(root))
+
+    delta = compute_delta(prev_files, items)
+    delta_md = format_delta_markdown(delta, prev_ts, curr_ts, root)
+    delta_path = os.path.join("reports", "delta.md")
+    with open(delta_path, "w", encoding="utf-8") as f:
+        f.write(delta_md)
+
+    save_last_scan(items, curr_ts, root)
+
+    print(
+        f"OK: wrote {delta_path} (+{len(delta['added'])} ~{len(delta['modified'])} -{len(delta['deleted'])})"
     )
 
 
@@ -606,10 +739,14 @@ def build_parser():
     p_overview_all.add_argument("--root", required=True, help="Canonical AI root containing category folders")
     p_overview_all.set_defaults(func=cmd_overview_all)
 
-    p_refresh = sub.add_parser("refresh", help="Generate inventory, timeline, and overview_all reports")
+    p_refresh = sub.add_parser("refresh", help="Generate inventory, timeline, overview_all, and delta reports")
     p_refresh.add_argument("--root", required=True, help="Canonical AI root containing category folders")
     p_refresh.add_argument("--verbose", action="store_true", help="Verbose traversal logging")
     p_refresh.set_defaults(func=cmd_refresh)
+
+    p_delta = sub.add_parser("delta", help="Generate reports/delta.md (new/modified/deleted since last scan)")
+    p_delta.add_argument("--root", required=True, help="Root folder to scan")
+    p_delta.set_defaults(func=cmd_delta)
 
     p_restructure = sub.add_parser("restructure", help="Generate (or apply) category-based project move plan")
     p_restructure.add_argument("--root", required=True, help="Root folder containing top-level project folders")
