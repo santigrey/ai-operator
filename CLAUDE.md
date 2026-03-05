@@ -49,23 +49,29 @@ Priority order:
 
 ## Automated Refresh
 
-`bin/agentos_refresh.sh` is invoked by a LaunchAgent every 900 seconds and at login.
+Two scripts work together:
 
+- **`bin/agentos_agent.sh`** — persistent loop (Login Item), calls `agentos_refresh.sh` every 900s
+- **`bin/agentos_refresh.sh`** — the actual refresh: acquires lock, runs pre-flight, calls `agentctl.py refresh`
+
+Key properties of `agentos_refresh.sh`:
 - Logs: `reports/launchagent.log` (stdout) and `reports/launchagent.run.stderr.log` (python stderr)
-- Lock: `reports/.refresh.lockdir` — atomic `mkdir`-based, always removed on exit via `trap`, treated as stale after 1800s
-- Timeout: 300s via `/usr/bin/timeout` or a background pid+watchdog fallback
-- Lock ownership: the shell script owns the lock entirely; `agentctl.py refresh` has no lock logic
-- Verbosity: default output is 3 OK summary lines only; pass `--verbose` to enable `ENTER dir:` traversal logging. Other commands (`projects`, `overview`, `overview-all`, `restructure`) are always verbose.
+- Lock: `reports/.refresh.lockdir` — atomic `mkdir`-based, always removed on exit via `trap`, stale after 1800s
+- Pre-flight: 15s `ls` check on the iCloud root — exits with `rc=icloud-unavailable` if it stalls or fails
+- Timeout: 600s via `/usr/bin/timeout` if present, otherwise background pid+watchdog
+- Lock ownership: shell script owns entirely; `agentctl.py refresh` has no lock logic
+- Verbosity: default output is 3 OK summary lines; pass `--verbose` to `agentctl.py` for `ENTER dir:` logging
 
-### LaunchAgent plist
+### Why Login Item, not LaunchAgent
 
-Canonical plist lives at `launchagent/com.sloan.agentos.refresh.plist`. To install:
+The LaunchAgent plist (`launchagent/com.sloan.agentos.refresh.plist`) is kept for reference but **does not work** — the macOS iCloud file provider XPC service is unavailable in the launchd session context, causing all filesystem access to the iCloud Drive path to hang or fail with EPERM regardless of TCC/FDA grants. The Login Item runs in the full GUI user session where iCloud is accessible.
 
-```zsh
-cp launchagent/com.sloan.agentos.refresh.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.sloan.agentos.refresh.plist
-launchctl list | grep agentos   # verify: should show PID and exit 0
-```
+### Install
+
+**System Settings → General → Login Items & Extensions → Open at Login → `+`** → select `bin/agentos_agent.sh`
+
+To start immediately: `/Users/jes/AI_Agent_OS/bin/agentos_agent.sh &`
+To stop: `pkill -f agentos_agent.sh`
 
 ## Reports Directory
 

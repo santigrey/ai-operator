@@ -44,33 +44,34 @@ Classification priority:
 
 ## Automated Refresh
 
-`bin/agentos_refresh.sh` runs as a LaunchAgent every 900 seconds (and at login), calling:
-
-```zsh
-python3 agentctl.py refresh --root "~/Library/Mobile Documents/com~apple~CloudDocs/AI"
-```
+`bin/agentos_refresh.sh` is the core refresh script. It is driven by `bin/agentos_agent.sh` — a persistent loop that calls the refresh every 900 seconds.
 
 Logs: `reports/launchagent.log` / `reports/launchagent.run.stderr.log`
 Lock: `reports/.refresh.lockdir` — atomic `mkdir`-based, prevents concurrent runs, auto-removed on exit, stale after 1800s
 
-### Install LaunchAgent
+> **Note:** A LaunchAgent (`launchagent/com.sloan.agentos.refresh.plist`) exists in the repo but cannot access iCloud Drive in the launchd session context (macOS iCloud file provider XPC unavailable outside the user GUI session). The Login Item approach below is the working solution.
+
+### Install as Login Item
+
+1. **System Settings → General → Login Items & Extensions → Open at Login → `+`**
+2. Navigate to `/Users/jes/AI_Agent_OS/bin/agentos_agent.sh` and add it
+
+To start immediately without logging out:
 
 ```zsh
-cp launchagent/com.sloan.agentos.refresh.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.sloan.agentos.refresh.plist
+/Users/jes/AI_Agent_OS/bin/agentos_agent.sh &
 ```
 
 ### Verify
 
 ```zsh
-launchctl list | grep agentos        # should show a PID and exit code 0
-tail -f reports/launchagent.log      # live log
+tail -f reports/launchagent.log      # live log — shows AGENT start, then START/END refresh every 15m
 ```
 
-### Unload
+### Stop
 
 ```zsh
-launchctl unload ~/Library/LaunchAgents/com.sloan.agentos.refresh.plist
+pkill -f agentos_agent.sh
 ```
 
 ## State
