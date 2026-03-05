@@ -9,6 +9,8 @@
 		<string>/bin/zsh</string>
 		<string>/Users/jes/AI_Agent_OS/bin/agentos_refresh.sh</string>
 	</array>
+	<key>LimitLoadToSessionType</key>
+	<string>Aqua</string>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>StartInterval</key>
