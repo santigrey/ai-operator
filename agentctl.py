@@ -12,6 +12,13 @@ STATE_PATH = os.path.join(BASE_DIR, "data", "agent_state.json")
 SNAPSHOT_PATH = os.path.join(BASE_DIR, "data", "last_scan.json")
 MAX_MD_BYTES = 50 * 1024
 DEFAULT_TIMELINE_MAX_ROWS = 300
+INDEX_CONTENT_BYTES = 8 * 1024
+
+PG_HOST = "192.168.1.10"
+PG_PORT = 5432
+PG_USER = "admin"
+PG_PASSWORD = "adminpass"
+PG_DBNAME = "controlplane"
 
 
 def load_state():
@@ -711,6 +718,125 @@ def cmd_delta(args):
     )
 
 
+def _pg_connect():
+    import psycopg2
+    return psycopg2.connect(
+        host=PG_HOST, port=PG_PORT,
+        user=PG_USER, password=PG_PASSWORD,
+        dbname=PG_DBNAME,
+    )
+
+
+def _ensure_schema(conn):
+    with conn.cursor() as cur:
+        cur.execute("CREATE SCHEMA IF NOT EXISTS agent_os")
+        cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS agent_os.documents (
+                file_path   TEXT PRIMARY KEY,
+                category    TEXT,
+                project     TEXT,
+                content     TEXT,
+                embedding   vector(384),
+                file_mtime  BIGINT,
+                indexed_at  TIMESTAMPTZ DEFAULT now()
+            )
+        """)
+    conn.commit()
+
+
+def _path_to_category_project(rel_path: str):
+    parts = rel_path.replace("\\", "/").split("/")
+    category = parts[0] if len(parts) >= 1 else ""
+    project = parts[1] if len(parts) >= 2 else ""
+    return category, project
+
+
+def cmd_index(args):
+    from sentence_transformers import SentenceTransformer
+
+    root = args.root
+    if not os.path.isdir(root):
+        raise SystemExit(f"Root does not exist or is not a directory: {root}")
+
+    print("Loading embedding model...", flush=True)
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    items = list(walk_repo(root))
+    total = len(items)
+    print(f"Indexing {total} files from {os.path.abspath(root)}", flush=True)
+
+    conn = _pg_connect()
+    _ensure_schema(conn)
+
+    for i, item in enumerate(items, 1):
+        rel_path = item["path"]
+        abs_path = os.path.join(root, rel_path)
+        category, project = _path_to_category_project(rel_path)
+
+        content = ""
+        try:
+            with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read(INDEX_CONTENT_BYTES)
+        except OSError:
+            pass
+
+        vec = model.encode(content or rel_path).tolist()
+        vec_str = "[" + ",".join(str(v) for v in vec) + "]"
+
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO agent_os.documents
+                    (file_path, category, project, content, embedding, file_mtime)
+                VALUES (%s, %s, %s, %s, %s::vector, %s)
+                ON CONFLICT (file_path) DO UPDATE SET
+                    category   = EXCLUDED.category,
+                    project    = EXCLUDED.project,
+                    content    = EXCLUDED.content,
+                    embedding  = EXCLUDED.embedding,
+                    file_mtime = EXCLUDED.file_mtime,
+                    indexed_at = now()
+            """, (rel_path, category, project, content, vec_str, item["mtime_epoch"]))
+        conn.commit()
+
+        print(f"Indexed {i}/{total}: {rel_path}", flush=True)
+
+    conn.close()
+    print(f"OK: indexed {total} files into agent_os.documents", flush=True)
+
+
+def cmd_search(args):
+    from sentence_transformers import SentenceTransformer
+
+    print("Loading embedding model...", flush=True)
+    model = SentenceTransformer("all-MiniLM-L6-v2")
+
+    vec = model.encode(args.query).tolist()
+    vec_str = "[" + ",".join(str(v) for v in vec) + "]"
+
+    conn = _pg_connect()
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT file_path, category, project, file_mtime,
+                   1 - (embedding <=> %s::vector) AS similarity
+            FROM agent_os.documents
+            ORDER BY embedding <=> %s::vector
+            LIMIT 5
+        """, (vec_str, vec_str))
+        rows = cur.fetchall()
+    conn.close()
+
+    if not rows:
+        print("No results.")
+        return
+
+    print(f"\nTop {len(rows)} results for: {args.query!r}\n")
+    for rank, (file_path, category, project, file_mtime, similarity) in enumerate(rows, 1):
+        print(f"  {rank}. [{similarity:.3f}] {file_path}")
+        print(f"       category={category}  project={project}")
+    print()
+
+
 def build_parser():
     p = argparse.ArgumentParser(prog="agentctl", description="Agent OS runner (foundation)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -752,6 +878,14 @@ def build_parser():
     p_restructure.add_argument("--root", required=True, help="Root folder containing top-level project folders")
     p_restructure.add_argument("--dry-run", action="store_true", help="Write plan only, do not move anything")
     p_restructure.set_defaults(func=cmd_restructure)
+
+    p_index = sub.add_parser("index", help="Embed all files and upsert into PostgreSQL agent_os.documents")
+    p_index.add_argument("--root", required=True, help="Canonical AI root containing category folders")
+    p_index.set_defaults(func=cmd_index)
+
+    p_search = sub.add_parser("search", help="Semantic search across indexed files (top 5)")
+    p_search.add_argument("--query", required=True, help="Search query text")
+    p_search.set_defaults(func=cmd_search)
 
     return p
 
