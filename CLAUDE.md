@@ -49,11 +49,22 @@ Priority order:
 
 ## Automated Refresh
 
-`bin/agentos_refresh.sh` is the LaunchAgent script. It runs:
+`bin/agentos_refresh.sh` is invoked by a LaunchAgent every 900 seconds and at login.
+
+- Logs: `reports/launchagent.log` (stdout) and `reports/launchagent.run.stderr.log` (python stderr)
+- Lock: `reports/.refresh.lockdir` — atomic `mkdir`-based, always removed on exit via `trap`, treated as stale after 1800s
+- Timeout: 300s via `/usr/bin/timeout` or a background pid+watchdog fallback
+- Lock ownership: the shell script owns the lock entirely; `agentctl.py refresh` has no lock logic
+
+### LaunchAgent plist
+
+Canonical plist lives at `launchagent/com.sloan.agentos.refresh.plist`. To install:
+
+```zsh
+cp launchagent/com.sloan.agentos.refresh.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.sloan.agentos.refresh.plist
+launchctl list | grep agentos   # verify: should show PID and exit 0
 ```
-python3 agentctl.py refresh --root "~/Library/Mobile Documents/com~apple~CloudDocs/AI"
-```
-Logs go to `reports/launchagent.log` and `reports/launchagent.run.stderr.log`. Uses `reports/.refresh.lock` to prevent concurrent runs.
 
 ## Reports Directory
 
