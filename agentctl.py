@@ -40,6 +40,15 @@ def touch_state_timestamp(state):
     return state
 
 
+def log(message: str):
+    print(message, flush=True)
+
+
+def listdir_sorted(path: str):
+    log(f"ENTER dir: {path}")
+    return sorted(os.listdir(path))
+
+
 def cmd_status(_args):
     state = load_state()
     state = touch_state_timestamp(state)
@@ -146,7 +155,7 @@ def _folder_bucket(path: str) -> str:
 def _read_project_markdown_corpus(project_path: str) -> str:
     chunks = []
     try:
-        entries = sorted(os.listdir(project_path))
+        entries = listdir_sorted(project_path)
     except OSError:
         return ""
 
@@ -230,13 +239,14 @@ def cmd_restructure(args):
 
     os.makedirs("reports", exist_ok=True)
 
+    root_entries = listdir_sorted(root)
     existing_dirs = {
-        name for name in os.listdir(root) if os.path.isdir(os.path.join(root, name))
+        name for name in root_entries if os.path.isdir(os.path.join(root, name))
     }
     mkdir_needed = [name for name in CANONICAL_FOLDERS if name not in existing_dirs]
 
     move_cmds = []
-    for entry in sorted(os.listdir(root)):
+    for entry in root_entries:
         project_path = os.path.join(root, entry)
         if not os.path.isdir(project_path) or should_skip_dir(entry):
             continue
@@ -328,7 +338,7 @@ def collect_project_stats(root: str, skip_project_names=None):
     projects = []
     skip_names = set(skip_project_names or [])
 
-    for entry in sorted(os.listdir(root)):
+    for entry in listdir_sorted(root):
         project_path = os.path.join(root, entry)
         if not os.path.isdir(project_path) or should_skip_dir(entry):
             continue
@@ -540,31 +550,45 @@ def cmd_refresh(args):
         raise SystemExit(f"Root does not exist or is not a directory: {root}")
 
     os.makedirs("reports", exist_ok=True)
+    lock_path = os.path.join("reports", ".refresh.lock")
+    try:
+        lock_fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        with os.fdopen(lock_fd, "w", encoding="utf-8") as lock_file:
+            lock_file.write(f"{os.getpid()}\n")
+    except FileExistsError:
+        print(f"SKIP refresh (lock exists: {lock_path})")
+        return
 
-    items = list(walk_repo(root))
+    try:
+        items = list(walk_repo(root))
 
-    inventory_md = format_inventory_markdown(items, root)
-    inventory_path = os.path.join("reports", "inventory.md")
-    with open(inventory_path, "w", encoding="utf-8") as f:
-        f.write(inventory_md)
+        inventory_md = format_inventory_markdown(items, root)
+        inventory_path = os.path.join("reports", "inventory.md")
+        with open(inventory_path, "w", encoding="utf-8") as f:
+            f.write(inventory_md)
 
-    timeline_md = format_timeline_markdown(items, root, max_rows=DEFAULT_TIMELINE_MAX_ROWS)
-    timeline_path = os.path.join("reports", "timeline.md")
-    with open(timeline_path, "w", encoding="utf-8") as f:
-        f.write(timeline_md)
+        timeline_md = format_timeline_markdown(items, root, max_rows=DEFAULT_TIMELINE_MAX_ROWS)
+        timeline_path = os.path.join("reports", "timeline.md")
+        with open(timeline_path, "w", encoding="utf-8") as f:
+            f.write(timeline_md)
 
-    overview_all_md, total_projects, categories_written = build_overview_all_markdown(root)
-    overview_all_path = os.path.join("reports", "overview_all.md")
-    with open(overview_all_path, "w", encoding="utf-8") as f:
-        f.write(overview_all_md)
+        overview_all_md, total_projects, categories_written = build_overview_all_markdown(root)
+        overview_all_path = os.path.join("reports", "overview_all.md")
+        with open(overview_all_path, "w", encoding="utf-8") as f:
+            f.write(overview_all_md)
 
-    print(f"OK: wrote {inventory_path} ({len(items)} files)")
-    print(
-        f"OK: wrote {timeline_path} ({len(items)} files scanned, showing {min(DEFAULT_TIMELINE_MAX_ROWS, len(items))})"
-    )
-    print(
-        f"OK: wrote {overview_all_path} ({total_projects} projects across {categories_written} categories)"
-    )
+        print(f"OK: wrote {inventory_path} ({len(items)} files)")
+        print(
+            f"OK: wrote {timeline_path} ({len(items)} files scanned, showing {min(DEFAULT_TIMELINE_MAX_ROWS, len(items))})"
+        )
+        print(
+            f"OK: wrote {overview_all_path} ({total_projects} projects across {categories_written} categories)"
+        )
+    finally:
+        try:
+            os.unlink(lock_path)
+        except FileNotFoundError:
+            pass
 
 
 def build_parser():
