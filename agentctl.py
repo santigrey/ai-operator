@@ -738,7 +738,7 @@ def _ensure_schema(conn):
                 project     TEXT,
                 content     TEXT,
                 embedding   vector(384),
-                file_mtime  BIGINT,
+                file_mtime  TIMESTAMPTZ,
                 indexed_at  TIMESTAMPTZ DEFAULT now()
             )
         """)
@@ -777,7 +777,7 @@ def cmd_index(args):
         content = ""
         try:
             with open(abs_path, "r", encoding="utf-8", errors="ignore") as f:
-                content = f.read(INDEX_CONTENT_BYTES)
+                content = f.read(INDEX_CONTENT_BYTES).replace("\x00", "")
         except OSError:
             pass
 
@@ -788,7 +788,7 @@ def cmd_index(args):
             cur.execute("""
                 INSERT INTO agent_os.documents
                     (file_path, category, project, content, embedding, file_mtime)
-                VALUES (%s, %s, %s, %s, %s::vector, %s)
+                VALUES (%s, %s, %s, %s, %s::vector, to_timestamp(%s))
                 ON CONFLICT (file_path) DO UPDATE SET
                     category   = EXCLUDED.category,
                     project    = EXCLUDED.project,
