@@ -44,14 +44,34 @@ Classification priority:
 
 ## Automated Refresh
 
-`bin/agentos_refresh.sh` runs as a LaunchAgent, calling:
+`bin/agentos_refresh.sh` runs as a LaunchAgent every 900 seconds (and at login), calling:
 
-```bash
+```zsh
 python3 agentctl.py refresh --root "~/Library/Mobile Documents/com~apple~CloudDocs/AI"
 ```
 
 Logs: `reports/launchagent.log` / `reports/launchagent.run.stderr.log`
-Lock file: `reports/.refresh.lock` (prevents concurrent runs)
+Lock: `reports/.refresh.lockdir` — atomic `mkdir`-based, prevents concurrent runs, auto-removed on exit, stale after 1800s
+
+### Install LaunchAgent
+
+```zsh
+cp launchagent/com.sloan.agentos.refresh.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.sloan.agentos.refresh.plist
+```
+
+### Verify
+
+```zsh
+launchctl list | grep agentos        # should show a PID and exit code 0
+tail -f reports/launchagent.log      # live log
+```
+
+### Unload
+
+```zsh
+launchctl unload ~/Library/LaunchAgents/com.sloan.agentos.refresh.plist
+```
 
 ## State
 
