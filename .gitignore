@@ -4,6 +4,8 @@
 __pycache__/
 .venv/
 .DS_Store
+# Compiled app bundles
+*.app/
 # Runtime artifacts
 reports/*
 data/agent_state.json
