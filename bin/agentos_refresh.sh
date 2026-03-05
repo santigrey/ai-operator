@@ -4,7 +4,7 @@ REPO="/Users/jes/AI_Agent_OS"
 LOG="$REPO/reports/launchagent.log"
 ERR="$REPO/reports/launchagent.run.stderr.log"
 LOCK="$REPO/reports/.refresh.lockdir"
-TIMEOUT_SECS=300
+TIMEOUT_SECS=600
 STALE_SECS=1800
 
 ts() { /bin/date -u "+[%Y-%m-%dT%H:%M:%SZ]"; }
