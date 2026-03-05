@@ -31,7 +31,8 @@ python3 agentctl.py <command> [options]
 | `projects --root <dir>` | Per-project file counts and timestamps | `reports/projects.md` |
 | `overview --root <dir>` | Projects sorted by start date + latest activity | `reports/overview.md` |
 | `overview-all --root <dir>` | Same but across all canonical category folders | `reports/overview_all.md` |
-| `refresh --root <dir> [--verbose]` | Run inventory + timeline + overview-all in one shot | all three reports |
+| `refresh --root <dir> [--verbose]` | Run inventory + timeline + overview-all + delta in one shot | all four reports |
+| `delta --root <dir>` | New/modified/deleted files since last scan | `reports/delta.md` |
 | `restructure --root <dir> [--dry-run]` | Generate (or apply) category-based `mv` plan | `reports/restructure_plan.sh` |
 
 ### State File
@@ -72,6 +73,16 @@ The LaunchAgent plist (`launchagent/com.sloan.agentos.refresh.plist`) is kept fo
 
 To start immediately: `/Users/jes/AI_Agent_OS/bin/agentos_agent.sh &`
 To stop: `pkill -f agentos_agent.sh`
+
+## Delta Report
+
+`reports/delta.md` is generated automatically on every `refresh` and via `agentctl delta --root <dir>`. It compares the current scan against the previous snapshot stored at `data/last_scan.json` (gitignored) and reports:
+
+- **Added** — files present now but not in the last snapshot
+- **Modified** — files whose `mtime_epoch` or `bytes` changed
+- **Deleted** — files in the last snapshot that no longer exist
+
+The first run after no snapshot exists shows all files as added. Output line format: `+N ~N -N`.
 
 ## Reports Directory
 

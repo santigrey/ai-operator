@@ -5,7 +5,7 @@
 
 ## Current Status
 - Login Item agent (bin/agentos_agent.sh): STABLE — 900s interval, clean START→END
-- Reports generating: inventory.md, timeline.md, overview_all.md
+- Reports generating: inventory.md, timeline.md, overview_all.md, delta.md
 - 203 files indexed, 10 projects, 6 categories
 - All fixes committed and pushed to main
 
@@ -16,16 +16,16 @@
 - Raised timeout from 300s to 600s
 - Diagnosed LaunchAgent iCloud access failure (macOS session isolation — iCloud XPC unavailable in launchd context regardless of TCC/FDA)
 - Replaced LaunchAgent with persistent Login Item agent (bin/agentos_agent.sh)
+- Implemented delta report (reports/delta.md) — added/modified/deleted since last scan
 - Created Claude Project: Project Ascension — Agent OS
 - Established Option 3 continuity system (repo anchors + Claude Project)
 
 ## Pending
-- [ ] Delta report (reports/delta.md) — what changed since last refresh
 - [ ] Vector DB layer on CiscoKid
 - [ ] MCP server wrapper for agentctl
 
 ## Next Step
-Implement delta report — shows new/changed files since last refresh run.
+Vector DB layer on CiscoKid.
 
 ## Operating Notes
 - Interactive runs: ~0.4s
