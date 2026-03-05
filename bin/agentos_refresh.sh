@@ -3,7 +3,7 @@
 REPO="/Users/jes/AI_Agent_OS"
 LOG="$REPO/reports/launchagent.log"
 ERR="$REPO/reports/launchagent.run.stderr.log"
-LOCK="$REPO/reports/.refresh.lock"
+LOCK="$REPO/reports/.refresh.lockdir"
 TIMEOUT_SECS=300
 STALE_SECS=1800
 
@@ -12,24 +12,28 @@ log() { echo "$(ts) $*" >> "$LOG"; }
 
 # --- Lock cleanup on exit ---
 _cleanup() {
-  [[ -f "$LOCK" ]] && rm -f "$LOCK"
+  [[ -d "$LOCK" ]] && rmdir "$LOCK"
 }
 trap '_cleanup' EXIT INT TERM
 
 # --- Stale-lock check ---
-if [[ -f "$LOCK" ]]; then
+if [[ -d "$LOCK" ]]; then
   lock_age=$(( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$LOCK") ))
   if (( lock_age >= STALE_SECS )); then
     log "WARN stale lock removed (age=${lock_age}s): $LOCK"
-    rm -f "$LOCK"
+    rmdir "$LOCK"
   else
     log "SKIP refresh (lock exists: $LOCK)"
     exit 0
   fi
 fi
 
-# --- Acquire lock ---
-echo $$ > "$LOCK"
+# --- Acquire lock atomically (mkdir is atomic) ---
+if ! mkdir "$LOCK" 2>/dev/null; then
+  log "SKIP refresh (lock exists: $LOCK)"
+  exit 0
+fi
+echo $$ > "$LOCK/pid"
 
 log "START refresh"
 
