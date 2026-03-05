@@ -550,45 +550,31 @@ def cmd_refresh(args):
         raise SystemExit(f"Root does not exist or is not a directory: {root}")
 
     os.makedirs("reports", exist_ok=True)
-    lock_path = os.path.join("reports", ".refresh.lock")
-    try:
-        lock_fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        with os.fdopen(lock_fd, "w", encoding="utf-8") as lock_file:
-            lock_file.write(f"{os.getpid()}\n")
-    except FileExistsError:
-        print(f"SKIP refresh (lock exists: {lock_path})")
-        return
 
-    try:
-        items = list(walk_repo(root))
+    items = list(walk_repo(root))
 
-        inventory_md = format_inventory_markdown(items, root)
-        inventory_path = os.path.join("reports", "inventory.md")
-        with open(inventory_path, "w", encoding="utf-8") as f:
-            f.write(inventory_md)
+    inventory_md = format_inventory_markdown(items, root)
+    inventory_path = os.path.join("reports", "inventory.md")
+    with open(inventory_path, "w", encoding="utf-8") as f:
+        f.write(inventory_md)
 
-        timeline_md = format_timeline_markdown(items, root, max_rows=DEFAULT_TIMELINE_MAX_ROWS)
-        timeline_path = os.path.join("reports", "timeline.md")
-        with open(timeline_path, "w", encoding="utf-8") as f:
-            f.write(timeline_md)
+    timeline_md = format_timeline_markdown(items, root, max_rows=DEFAULT_TIMELINE_MAX_ROWS)
+    timeline_path = os.path.join("reports", "timeline.md")
+    with open(timeline_path, "w", encoding="utf-8") as f:
+        f.write(timeline_md)
 
-        overview_all_md, total_projects, categories_written = build_overview_all_markdown(root)
-        overview_all_path = os.path.join("reports", "overview_all.md")
-        with open(overview_all_path, "w", encoding="utf-8") as f:
-            f.write(overview_all_md)
+    overview_all_md, total_projects, categories_written = build_overview_all_markdown(root)
+    overview_all_path = os.path.join("reports", "overview_all.md")
+    with open(overview_all_path, "w", encoding="utf-8") as f:
+        f.write(overview_all_md)
 
-        print(f"OK: wrote {inventory_path} ({len(items)} files)")
-        print(
-            f"OK: wrote {timeline_path} ({len(items)} files scanned, showing {min(DEFAULT_TIMELINE_MAX_ROWS, len(items))})"
-        )
-        print(
-            f"OK: wrote {overview_all_path} ({total_projects} projects across {categories_written} categories)"
-        )
-    finally:
-        try:
-            os.unlink(lock_path)
-        except FileNotFoundError:
-            pass
+    print(f"OK: wrote {inventory_path} ({len(items)} files)")
+    print(
+        f"OK: wrote {timeline_path} ({len(items)} files scanned, showing {min(DEFAULT_TIMELINE_MAX_ROWS, len(items))})"
+    )
+    print(
+        f"OK: wrote {overview_all_path} ({total_projects} projects across {categories_written} categories)"
+    )
 
 
 def build_parser():
