@@ -12,7 +12,7 @@ log() { echo "$(ts) $*" >> "$LOG"; }
 
 # --- Lock cleanup on exit ---
 _cleanup() {
-  [[ -d "$LOCK" ]] && rmdir "$LOCK"
+  [[ -d "$LOCK" ]] && rm -rf "$LOCK"
 }
 trap '_cleanup' EXIT INT TERM
 
@@ -21,7 +21,7 @@ if [[ -d "$LOCK" ]]; then
   lock_age=$(( $(/bin/date +%s) - $(/usr/bin/stat -f %m "$LOCK") ))
   if (( lock_age >= STALE_SECS )); then
     log "WARN stale lock removed (age=${lock_age}s): $LOCK"
-    rmdir "$LOCK"
+    rm -rf "$LOCK"
   else
     log "SKIP refresh (lock exists: $LOCK)"
     exit 0
