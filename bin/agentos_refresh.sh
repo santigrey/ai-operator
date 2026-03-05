@@ -6,6 +6,8 @@ ERR="$REPO/reports/launchagent.run.stderr.log"
 LOCK="$REPO/reports/.refresh.lockdir"
 TIMEOUT_SECS=600
 STALE_SECS=1800
+CLOUD_ROOT="/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI"
+PREFLIGHT_SECS=15
 
 ts() { /bin/date -u "+[%Y-%m-%dT%H:%M:%SZ]"; }
 log() { echo "$(ts) $*" >> "$LOG"; }
@@ -39,8 +41,22 @@ log "START refresh"
 
 cd "$REPO" || { log "END refresh (rc=1 cd-failed)"; exit 1; }
 
+# --- Pre-flight: verify iCloud root is accessible (stalls in launchd without GUI session) ---
+/bin/ls "$CLOUD_ROOT" >/dev/null 2>&1 &
+_ls_pid=$!
+( sleep "$PREFLIGHT_SECS"; kill "$_ls_pid" 2>/dev/null ) &
+_ls_guard=$!
+wait "$_ls_pid" 2>/dev/null
+_ls_rc=$?
+kill "$_ls_guard" 2>/dev/null
+wait "$_ls_guard" 2>/dev/null
+if (( _ls_rc != 0 )); then
+  log "END refresh (rc=icloud-unavailable)"
+  exit 1
+fi
+
 PYTHON=/opt/homebrew/bin/python3
-CMD=($PYTHON "$REPO/agentctl.py" refresh --root "/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI")
+CMD=($PYTHON "$REPO/agentctl.py" refresh --root "$CLOUD_ROOT")
 rc=0
 
 if [[ -x /usr/bin/timeout ]]; then
