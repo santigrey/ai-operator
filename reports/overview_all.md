@@ -26,7 +26,7 @@
 
 | Project | Category | Reason | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |
 |---|---|---|---:|---:|---:|---|
-| `genesis-agent` | `Agents` | `name:agent/operator/architect` | 4676 | 1738688135 | 1765086357 | `/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/genesis-agent` |
+| `genesis-agent` | `Agents` | `name:agent/operator/architect` | 26 | 1764887008 | 1765086357 | `/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/genesis-agent` |
 | `ChatGPT` | `Agents` | `content:agent` | 5 | 1770327381 | 1771800481 | `/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/ChatGPT` |
 
 ### Current activity (projects by latest update)
@@ -34,7 +34,7 @@
 | Project | Category | Reason | File Count | Oldest (epoch) | Newest (epoch) | Absolute Path |
 |---|---|---|---:|---:|---:|---|
 | `ChatGPT` | `Agents` | `content:agent` | 5 | 1770327381 | 1771800481 | `/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/ChatGPT` |
-| `genesis-agent` | `Agents` | `name:agent/operator/architect` | 4676 | 1738688135 | 1765086357 | `/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/genesis-agent` |
+| `genesis-agent` | `Agents` | `name:agent/operator/architect` | 26 | 1764887008 | 1765086357 | `/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/genesis-agent` |
 
 ## Category: Career
 

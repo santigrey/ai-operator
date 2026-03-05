@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+mkdir -p '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/AI_Infra'
+mkdir -p '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents'
+mkdir -p '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Career'
+mkdir -p '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Playground'
+mkdir -p '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Notes'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/2025 Training' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Career/2025 Training'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/AR Works' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Notes/AR Works'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/ARsoul' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Notes/ARsoul'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/ChatGPT' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/ChatGPT'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Project_Architect' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/AI_Infra/Project_Architect'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/ServerProject' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/AI_Infra/ServerProject'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Vector' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/AI_Infra/Vector'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/genesis-agent' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Agents/genesis-agent'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/project ascension' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/AI_Infra/project ascension'
+mv '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/venice_for_maeve' '/Users/jes/Library/Mobile Documents/com~apple~CloudDocs/AI/Venice/venice_for_maeve'

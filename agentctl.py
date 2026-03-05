@@ -7,7 +7,8 @@ import shlex
 from datetime import datetime
 from collections import Counter
 
-STATE_PATH = os.path.join("data", "agent_state.json")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATE_PATH = os.path.join(BASE_DIR, "data", "agent_state.json")
 MAX_MD_BYTES = 50 * 1024
 DEFAULT_TIMELINE_MAX_ROWS = 300
 
@@ -54,7 +55,19 @@ def cmd_status(_args):
 
 
 def should_skip_dir(dirname: str) -> bool:
-    return dirname in {".git", "__pycache__", ".venv", "node_modules", ".DS_Store"}
+    return dirname in {
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "node_modules",
+        ".DS_Store",
+        "site-packages",
+        ".mypy_cache",
+        ".pytest_cache",
+        "dist",
+        "build",
+    }
 
 
 def walk_repo(root: str):
