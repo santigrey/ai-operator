@@ -3,34 +3,33 @@
 
 ## Current Status
 - Login Item agent: STABLE — 900s interval, clean START→END
-- Reports generating: inventory.md, timeline.md, overview_all.md, delta.md
-- 27 project files ingested into pgvector memory table — search returning real content
-- Vector DB layer: FULLY OPERATIONAL
-- SSH config: permanent aliases for beast, ciscokid, slimjim on Mac mini
+- Vector DB: LIVE — 27 project files ingested, HNSW search validated
+- MCP Server: LIVE — homelab_mcp running on CiscoKid port 8001 (systemd)
+- SSH: passwordless access from Mac mini and Cortez to all nodes
 
 ## Completed
 - Vector DB layer live and validated
-- File ingest pipeline built and executed (27 files, 0 errors)
-- SSH config created on Mac mini — passwordless access to all nodes
-- iCloud docs pushed to repo — full architecture context in GitHub permanently
-- Search test validated — real content, meaningful similarity scores
+- File ingest pipeline (27 files, 0 errors, mxbai-embed-large)
+- SSH config on Mac mini and Cortez — beast, ciscokid, slimjim, kalipi
+- MCP server built and deployed as systemd service on CiscoKid port 8001
+- Tools: homelab_ssh_run, homelab_memory_search, homelab_memory_store, homelab_file_read, homelab_agent_status
 
 ## Pending
-- [ ] MCP server wrapper for agentctl — bridge for autonomous Claude access
-- [ ] Expand ingest to full 203 file set from all projects
+- [ ] Wire MCP server into Claude — connect claude.ai to homelab_mcp endpoint
+- [ ] Expand ingest to full 203 file set
 - [ ] Wire memory.search() into orchestrator agent loop
-- [ ] SSH key setup for CiscoKid and SlimJim (same as beast)
+- [ ] SSH key setup for KaliPi
 
 ## Next Step
-Build MCP server wrapper — this is the bridge that gives Claude autonomous access to all homelab nodes.
+Connect Claude to the MCP server — wire claude.ai Connectors to http://192.168.1.10:8001/mcp so Claude can call homelab tools directly.
 
 ## Operating Notes
-- Ollama: bound to 127.0.0.1:11434 on TheBeast — intentional security design
-- Ingest script: ~/ingest_files.py on TheBeast — MAX_CHARS=500 (mxbai context limit)
-- DB: controlplane @ CiscoKid (192.168.1.10), user=admin, pass=adminpass
+- Ollama: 127.0.0.1:11434 on TheBeast — intentional LAN-restriction
+- Ingest: ~/ingest_files.py on TheBeast, MAX_CHARS=500
+- DB: controlplane @ CiscoKid, user=admin, pass=adminpass
 - Embedding model: mxbai-embed-large (1024d)
 - Vector table: memory — id, source, content, embedding, embedding_model
 - SSH aliases: beast=192.168.1.152, ciscokid=192.168.1.10, slimjim=192.168.1.40, kalipi=192.168.1.254
+- Mac mini: 192.168.1.13 — SSH config with all node aliases
 - Cortez (Windows): SSH config configured, passwordless access to all nodes
-- Mac mini: 192.168.1.13, user=jes
-- KaliPi: 192.168.1.254
+- MCP server: /home/jes/control-plane/mcp_server.py on CiscoKid, FASTMCP_PORT=8001
