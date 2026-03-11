@@ -1,17 +1,18 @@
-# SESSION.md
+# SESSION.md — Project Ascension
 
 ## Last completed
-- MCP server operational on CiscoKid port 8001
-- Claude Code connected via homelab-mcp (user scope)
-- Tools live: homelab_agent_status, homelab_ssh_run, homelab_memory_search, homelab_memory_store, homelab_file_read
-- Passwordless sudo on CiscoKid
-- mcp_server.py committed (d325689)
+- MCP server fully operational on CiscoKid port 8001
+- Claude Code connected via homelab-mcp (user scope, global)
+- All 5 MCP tools live and tested across 3 nodes
+- JesAir SSH config locked in — passwordless to all 5 nodes
+- Confirmed architecture: JesAir=primary, Macmini=dev, CiscoKid=control, Beast=GPU, SlimJim=edge, KaliPi=pentest, Cortez=windows thin client
 
 ## Platform status
-- orchestrator: up (8000)
-- pgvector: up, 507 rows
-- ollama: 2 models (TheBeast)
-- MCP server: up (8001)
+- orchestrator: up (port 8000)
+- pgvector: up, 507 memory rows
+- ollama: 2 models loaded (TheBeast)
+- MCP server: up (port 8001)
 
 ## Next step
-Expand file ingest to full 203-file set. Wire memory search into Claude Code workflows.
+Expand file ingest to full 203-file set across all 10 projects in ~/AI_Agent_OS.
+Run ingest_files.py on TheBeast pointed at full AI_Agent_OS directory.
