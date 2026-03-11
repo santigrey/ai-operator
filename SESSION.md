@@ -30,6 +30,7 @@ Build MCP server wrapper — this is the bridge that gives Claude autonomous acc
 - DB: controlplane @ CiscoKid (192.168.1.10), user=admin, pass=adminpass
 - Embedding model: mxbai-embed-large (1024d)
 - Vector table: memory — id, source, content, embedding, embedding_model
-- SSH aliases: beast=192.168.1.152, ciscokid=192.168.1.10, slimjim=192.168.1.254
+- SSH aliases: beast=192.168.1.152, ciscokid=192.168.1.10, slimjim=192.168.1.40, kalipi=192.168.1.254
+- Cortez (Windows): SSH config configured, passwordless access to all nodes
 - Mac mini: 192.168.1.13, user=jes
 - KaliPi: 192.168.1.254
