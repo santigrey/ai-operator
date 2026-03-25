@@ -1,55 +1,62 @@
 # SESSION.md — Project Ascension
-## Date: 2026-03-24 (Day 23 of 60)
+## Date: 2026-03-25 (Day 24 of 60)
+## Engineer: James Sloan | Denver, CO
 
-## Completed this session
-- JSearch API integrated into Alexandra (RapidAPI — free tier)
-  - Real job listings from LinkedIn, Indeed, Glassdoor
-  - job_search_jsearch tool added to registry
-  - Agent now uses JSearch first, Adzuna as fallback
-  - CLI updated to display JSearch results
-- Agent query bug fixed — location no longer stuffed into "what" field
-- Agent dedup prompt updated — stops after JSearch succeeds
-- Pipeline recalibrated — hybrid roles excluded, mid-level focus
-  - All identified roles ruled out (too senior, hybrid, or wrong fit)
-  - Teradata rejected, Coinbase rejected
-  - Prologis applied (Saturday), True Anomaly deprioritized
-- Mac mini ~/ai-operator repo cloned and SSH auth fixed (SSH keys)
-- JesAir SSH auth fixed — both machines now use SSH keys, no tokens
-- homelab-mcp connected to Claude Desktop on JesAir
-  - SSH stdio transport via passwordless key (id_ed25519_mcp)
-  - mcp_stdio.py wrapper created on CiscoKid
-  - All 5 homelab tools live in Claude Desktop and Cowork
-- Cowork used homelab tools autonomously — diagnosed and fixed Ollama probe bug
-  - Old probe: curl pipe to python json.load — crashed on empty body
-  - New probe: direct requests.get to TheBeast — clean and reliable
-- Platform status: all green (orchestrator, pgvector, Ollama)
+---
 
-## Platform status
-- Orchestrator: up (CiscoKid:8000)
-- pgvector: up (592 memory rows)
-- Ollama: up (TheBeast) — probe fixed
-- MCP server: up (CiscoKid:8001)
-- homelab-mcp: connected to Claude Desktop on JesAir
-- alexandra CLI: live on Mac mini
-- Cowork: live on JesAir (connected to homelab)
-- Dashboard: live at http://ciscokid.local:8000/dashboard
+## PROJECT STATE
 
-## Machine map
-- JesAir: git ops, Paco sessions, Claude Desktop + Cowork + homelab-mcp
-- Mac mini (ssh macmini): alexandra CLI, CC builds, ~/ai-operator repo
-- CiscoKid (ssh ciscokid): orchestrator, pgvector, MCP server
-- TheBeast: Ollama inference
-- Cortez: Windows — available when at desk
+Project Ascension is running on two parallel tracks that compound each
+other. Track 1 is a self-hosted production AI platform built on homelab
+hardware. Track 2 is a complete Anthropic API mastery curriculum built
+independently in 20 hours. Together they form a single cohesive portfolio
+that demonstrates both infrastructure depth and API fluency.
 
-## Job search pipeline (as of Day 23)
-- Prologis Senior Applied AI Engineer: applied
-- True Anomaly Staff PE AI: applied, deprioritized
-- Coinbase Sr Staff SWE AI DevEx: rejected
-- Teradata Principal Engineer Agentic AI: rejected
-- Target band: mid-level AI Engineer, $120-160k, remote preferred
+---
 
-## Next session — Phase II-C
-1. Portfolio weaponization — README, architecture diagram, demo harness
-2. Run targeted remote AI Engineer searches with JSearch
-3. Apply to right-level roles found
-4. SESSION.md and OPERATING-PROCEDURES.md updates
+## TRACK 1 — HOMELAB AI PLATFORM
+### Repo: github.com/santigrey/ai-operator
+
+A three-plane distributed AI platform designed to mirror production
+AI infrastructure at real companies.
+
+### Architecture
+- Control Plane: CiscoKid (192.168.1.10) — FastAPI orchestrator :8000,
+  PostgreSQL + pgvector, MCP server :8001
+- Inference Plane: TheBeast (192.168.1.152) — Ollama, llama3.1:8b,
+  mxbai-embed-large, Tesla T4 GPU
+- Operator Layer: JesAir (git/Paco/Cowork), Mac mini (CLI/CC),
+  Cortez (Cowork/Windows)
+
+### Alexandra — Autonomous AI Agent
+- ReAct loop (up to 5 steps), vector memory, full event sourcing
+- Tool registry: job_search_jsearch (LinkedIn/Indeed/Glassdoor via
+  JSearch RapidAPI), job_search (Adzuna), web_search (DDG),
+  draft_message (Ollama), ping
+- Deduplication guard, JSON bleed guard, clean plain-text answers
+- CLI: alexandra "find remote AI Engineer jobs" from Mac mini
+- Web dashboard: dark theme, live at http://ciscokid.local:8000/dashboard
+- homelab-mcp connected to Claude Desktop on JesAir via SSH stdio
+- Cowork autonomously diagnosed and fixed Ollama probe bug using
+  homelab tools
+
+### Phase Status
+- Phase I  — Agent OS scanner and refresh loop         COMPLETE
+- Phase II-A — Alexandra core agent loop and CLI       COMPLETE
+- Phase II-B — Web dashboard                           COMPLETE
+- Phase II-C — Portfolio weaponization                 IN PROGRESS
+- Phase II-D — Scheduled agent team                    PENDING
+
+---
+
+## TRACK 2 — CLAUDE API MASTERY CURRICULUM
+### Repo: github.com/santigrey/claude-mastery
+### Built: March 24-25, 2026 (~20 hours)
+
+A ground-up Anthropic API curriculum built independently, covering
+every layer from raw API calls to production agent systems.
+
+### What Was Built
+- hello_claude.py — raw API call, metadata, model understanding
+- streaming.py — real-time token delivery
+- structured_output.py — JSON outputs via system prompt
