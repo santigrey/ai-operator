@@ -1,83 +1,55 @@
-# AI Agent OS
+# Project Ascension — AI Platform Engineering Portfolio
 
-Operator tooling for a self-hosted, multi-plane AI platform. This repo manages scanning, classifying, and reporting on a local AI project tree — it is not the AI services themselves.
+**James Sloan** · Former Senior Software Engineer at Optum (UnitedHealth Group), now building AI infrastructure systems. · Denver, CO · [github.com/santigrey](https://github.com/santigrey)
 
-## Platform Architecture
+---
 
-Three logical planes, running on separate hardware:
+## What This Is
 
-| Plane | Purpose | Stack |
-|---|---|---|
-| **Control** | Orchestration, memory, state | FastAPI, PostgreSQL, pgvector, Docker |
-| **Inference** | Model execution | Ollama, NVIDIA GPU, Open WebUI |
-| **Edge** | Device integrations | Anki Vector / Wire-Pod, peripherals |
+A self-hosted, production-grade AI platform built from scratch on homelab hardware — designed to mirror how real AI infrastructure companies architect their systems. Not a tutorial follow-along. Not a demo. A working platform that runs autonomously, finds real jobs from LinkedIn and Indeed, drafts outreach, and gets better every session.
 
-Operator machines (Mac mini, Windows workstation) connect remotely. No core AI services run on operator devices.
+Built in 24 days during a career transition from enterprise infrastructure engineering into applied AI.
 
-## agentctl.py
+---
 
-The single CLI entry point for all operator commands. Run from the repo root:
+## Live Screenshots
 
-```bash
-python3 agentctl.py <command> [options]
+**Alexandra Web Dashboard** — platform status, agent history, run-agent interface:
+
+![Alexandra Dashboard](docs/screenshots/dashboard.png)
+
+**Alexandra CLI** — one-step job search returning 10 real results from LinkedIn/Indeed/Glassdoor:
+
+![Alexandra CLI](docs/screenshots/cli.png)
+
+---
+
+## The Platform
+
+Three logical planes running on separate physical hardware — the same separation of concerns you find at companies like Weights & Biases, Modal, and Replicate.
+
 ```
-
-| Command | Description | Output |
-|---|---|---|
-| `status` | Print current state and touch `last_updated` | stdout |
-| `scan --root <dir>` | Walk a directory tree and emit a file inventory | `reports/inventory.md` |
-| `timeline --root <dir>` | Newest files and hot folders | `reports/timeline.md` |
-| `projects --root <dir>` | Per-project file counts and timestamps | `reports/projects.md` |
-| `overview --root <dir>` | Projects sorted by start date and latest activity | `reports/overview.md` |
-| `overview-all --root <dir>` | Overview across all canonical category folders | `reports/overview_all.md` |
-| `refresh --root <dir>` | Run inventory + timeline + overview-all in one shot | all three reports |
-| `restructure --root <dir> [--dry-run]` | Generate (or apply) a category-based move plan | `reports/restructure_plan.sh` |
-
-### Project Classification
-
-Projects are assigned to one of six canonical categories: `AI_Infra`, `Agents`, `Career`, `Venice`, `Playground`, `Notes`.
-
-Classification priority:
-1. **Name override** — `career`/`training`/`resume` in the folder name always wins
-2. **Content-based** — reads `.md` files from the project root and matches keywords
-3. **Name-based fallback** — keyword matching on the folder name
-
-## Automated Refresh
-
-`bin/agentos_refresh.sh` is the core refresh script. It is driven by `bin/agentos_agent.sh` — a persistent loop that calls the refresh every 900 seconds.
-
-Logs: `reports/launchagent.log` / `reports/launchagent.run.stderr.log`
-Lock: `reports/.refresh.lockdir` — atomic `mkdir`-based, prevents concurrent runs, auto-removed on exit, stale after 1800s
-
-> **Note:** A LaunchAgent (`launchagent/com.sloan.agentos.refresh.plist`) exists in the repo but cannot access iCloud Drive in the launchd session context (macOS iCloud file provider XPC unavailable outside the user GUI session). The Login Item approach below is the working solution.
-
-### Install as Login Item
-
-1. **System Settings → General → Login Items & Extensions → Open at Login → `+`**
-2. Navigate to `/Users/jes/AI_Agent_OS/bin/agentos_agent.sh` and add it
-
-To start immediately without logging out:
-
-```zsh
-/Users/jes/AI_Agent_OS/bin/agentos_agent.sh &
+┌─────────────────────────────────────────────────────────────┐
+│                      CONTROL PLANE                          │
+│  CiscoKid · 192.168.1.10                                   │
+│                                                             │
+│  FastAPI Orchestrator  :8000    MCP Server         :8001   │
+│  PostgreSQL + pgvector          Event sourcing             │
+│  Alexandra agent loop           Tool registry              │
+│  Web dashboard                  Memory write-back          │
+├─────────────────────────────────────────────────────────────┤
+│                     INFERENCE PLANE                         │
+│  TheBeast · 192.168.1.152                                  │
+│                                                             │
+│  Ollama runtime                 llama3.1:8b                │
+│  Tesla T4 GPU                   mxbai-embed-large          │
+│  Dedicated GPU node             No CPU contention          │
+├─────────────────────────────────────────────────────────────┤
+│                      OPERATOR LAYER                         │
+│  JesAir · Mac mini · Cortez (Windows)                      │
+│                                                             │
+│  alexandra CLI                  Claude Desktop + Cowork    │
+│  Claude Code builds             homelab-mcp connected      │
+│  Git operations                 Job search workflow        │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-### Verify
-
-```zsh
-tail -f reports/launchagent.log      # live log — shows AGENT start, then START/END refresh every 15m
-```
-
-### Stop
-
-```zsh
-pkill -f agentos_agent.sh
-```
-
-## State
-
-`data/agent_state.json` tracks project name, canonical repo, command center host, status, and last updated timestamp. Every command updates `last_updated` on write.
-
-## Reports
-
-All generated reports live in `reports/`. They are regenerated on demand and should be treated as build artifacts.
