@@ -1,4 +1,4 @@
-# SESSION.md â Project Ascension
+# SESSION.md Ã¢ÂÂ Project Ascension
 ## Date: 2026-03-27 (Day 26 of 60)
 ## Engineer: James Sloan | Denver, CO
 
@@ -10,18 +10,18 @@ Project Ascension is running on two parallel tracks that compound each other. Tr
 
 ---
 
-## TRACK 1 â HOMELAB AI PLATFORM
+## TRACK 1 Ã¢ÂÂ HOMELAB AI PLATFORM
 
 ### Repo: github.com/santigrey/ai-operator
 
 A three-plane distributed AI platform designed to mirror production AI infrastructure at real companies.
 
 ### Architecture
-- Control Plane: Server 3 (192.168.1.10) â FastAPI orchestrator :8000, PostgreSQL + pgvector, MCP server :8001
-- Inference Plane: Server 2 (192.168.1.152) â Ollama, llama3.1:8b, mxbai-embed-large, Tesla T4 GPU
+- Control Plane: Server 3 (192.168.1.10) Ã¢ÂÂ FastAPI orchestrator :8000, PostgreSQL + pgvector, MCP server :8001
+- Inference Plane: Server 2 (192.168.1.152) Ã¢ÂÂ Ollama, llama3.1:8b, mxbai-embed-large, Tesla T4 GPU
 - Operator Layer: Thin Client 1/JesAir (git/Paco/Cowork), Mac mini (CLI/CC), Thin Client 2/Cortez (Cowork/Windows)
 
-### Alexandra â Autonomous AI Agent
+### Alexandra Ã¢ÂÂ Autonomous AI Agent
 - ReAct loop (up to 5 steps), vector memory, full event sourcing
 - Tool registry: job_search_jsearch (LinkedIn/Indeed/Glassdoor via JSearch RapidAPI), job_search (Adzuna), web_search (DDG), draft_message (Ollama), ping
 - Deduplication guard, JSON bleed guard, clean plain-text answers
@@ -30,31 +30,31 @@ A three-plane distributed AI platform designed to mirror production AI infrastru
 - homelab-mcp connected to Claude Desktop on JesAir via SSH stdio (id_ed25519_mcp)
 - Cowork autonomously diagnosed and fixed Ollama probe bug using homelab tools
 
-### Agent Network â NEW Day 25
+### Agent Network Ã¢ÂÂ NEW Day 25
 - agent_tasks table: id, created_by, assigned_to, status (pending_approval/approved/rejected), title, payload, result, created_at, updated_at
 - messages table: id, from_agent, to_agent, thread_id, content, read, created_at
 - 5 new homelab-mcp tools: homelab_create_task, homelab_list_tasks, homelab_update_task, homelab_send_message, homelab_read_messages
 - Dashboard Agent Tasks section: displays all tasks, Approve/Reject buttons for pending_approval rows
 - FastAPI endpoints: POST /tasks/{task_id}/approve, POST /tasks/{task_id}/reject
-- End-to-end verified: Paco creates task via MCP â PostgreSQL â dashboard displays â approve/reject works
+- End-to-end verified: Paco creates task via MCP Ã¢ÂÂ PostgreSQL Ã¢ÂÂ dashboard displays Ã¢ÂÂ approve/reject works
 
-### Infrastructure Fixes â Day 24-25
+### Infrastructure Fixes Ã¢ÂÂ Day 24-25
 - SSH passphrase removed permanently from id_ed25519 on JesAir
 - SSH command limit raised from 500 to 2000 chars in mcp_server.py
 - Python bytecode cache cleared to fix stale tool loading
 - Portfolio README updated: Server 2/Server 3/Thin Client 1/Thin Client 2 naming, live screenshots
 
 ### Phase Status
-- Phase I â Agent OS scanner and refresh loop COMPLETE
-- Phase II-A â Alexandra core agent loop and CLI COMPLETE
-- Phase II-B â Web dashboard COMPLETE
-- Phase II-C â Portfolio weaponization COMPLETE
-- Phase II-D â Agent Network foundation COMPLETE (Day 25)
-- Phase II-E â CC polling loop / autonomous task execution COMPLETE (Day 26)
+- Phase I Ã¢ÂÂ Agent OS scanner and refresh loop COMPLETE
+- Phase II-A Ã¢ÂÂ Alexandra core agent loop and CLI COMPLETE
+- Phase II-B Ã¢ÂÂ Web dashboard COMPLETE
+- Phase II-C Ã¢ÂÂ Portfolio weaponization COMPLETE
+- Phase II-D Ã¢ÂÂ Agent Network foundation COMPLETE (Day 25)
+- Phase II-E Ã¢ÂÂ CC polling loop / autonomous task execution COMPLETE (Day 26)
 
 ---
 
-## TRACK 2 â CLAUDE API MASTERY CURRICULUM
+## TRACK 2 Ã¢ÂÂ CLAUDE API MASTERY CURRICULUM
 
 ### Repo: github.com/santigrey/claude-mastery
 ### Built: March 24-25, 2026 (~20 hours)
@@ -62,23 +62,23 @@ A three-plane distributed AI platform designed to mirror production AI infrastru
 A ground-up Anthropic API curriculum built independently, covering every layer from raw API calls to production agent systems.
 
 ### What Was Built
-- hello_claude.py â raw API call, metadata, model understanding
-- streaming.py â real-time token delivery
-- structured_output.py â JSON outputs via system prompt
-- conversation_memory.py â multi-turn with history management
-- tool_use.py â single and parallel tool calling
-- mcp_integration.py â MCP server connection
-- react_agent.py â ReAct pattern from scratch
-- task_planning_agent.py â multi-step planning
-- production_hardening.py â retry logic, error handling, timeouts
-- hybrid_inference.py â Claude + local Ollama routing
-- eval_harness.py â automated evaluation, 100% pass rate
+- hello_claude.py Ã¢ÂÂ raw API call, metadata, model understanding
+- streaming.py Ã¢ÂÂ real-time token delivery
+- structured_output.py Ã¢ÂÂ JSON outputs via system prompt
+- conversation_memory.py Ã¢ÂÂ multi-turn with history management
+- tool_use.py Ã¢ÂÂ single and parallel tool calling
+- mcp_integration.py Ã¢ÂÂ MCP server connection
+- react_agent.py Ã¢ÂÂ ReAct pattern from scratch
+- task_planning_agent.py Ã¢ÂÂ multi-step planning
+- production_hardening.py Ã¢ÂÂ retry logic, error handling, timeouts
+- hybrid_inference.py Ã¢ÂÂ Claude + local Ollama routing
+- eval_harness.py Ã¢ÂÂ automated evaluation, 100% pass rate
 
 ---
 
 ## PENDING ITEMS
 
-1. Phase II-E â CC polling loop: script on Mac mini that checks agent_tasks and executes approved tasks autonomously
+1. Phase II-E Ã¢ÂÂ CC polling loop: script on Mac mini that checks agent_tasks and executes approved tasks autonomously
 2. Dashboard task approval screenshot for portfolio README
 3. Apply to right-level remote AI Engineer roles ($120-160k) via Alexandra job search
 4. SESSION.md auto-update at session close
@@ -87,7 +87,7 @@ A ground-up Anthropic API curriculum built independently, covering every layer f
 
 ## NEXT SESSION PROMPT
 
-"Paco â Day 26. Build CC polling loop: script on Mac mini that polls agent_tasks for approved tasks and executes them. This is Phase II-E."
+"Paco Ã¢ÂÂ Day 26. Build CC polling loop: script on Mac mini that polls agent_tasks for approved tasks and executes them. This is Phase II-E."
 
 ---
 
@@ -105,19 +105,30 @@ A ground-up Anthropic API curriculum built independently, covering every layer f
 
 ### Day 26 Additions
 - cc_poller.py on Mac mini: polls agent_tasks every 60s for approved tasks assigned to cc
-- macOS 15 NECP workaround: SSH tunnel via Apple-signed ssh binary (localhost:15432→Server3:5432, localhost:18000→Server3:8000)
+- macOS 15 NECP workaround: SSH tunnel via Apple-signed ssh binary (localhost:15432âServer3:5432, localhost:18000âServer3:8000)
 - launchd service com.ascension.cc-poller running with KeepAlive, verified end-to-end
 - Cowork on Cortez connected to homelab-mcp: id_ed25519_mcp key, Windows OpenSSH, split args fix
-- Full agent network verified: Paco creates task → dashboard approve → CC executes → completed → Cowork reads results
+- Full agent network verified: Paco creates task â dashboard approve â CC executes â completed â Cowork reads results
 - Both thin clients (JesAir + Cortez) now have homelab-mcp access
 - Lesson locked in: CC self-correcting prompts own diagnosis+fix tasks autonomously
 
+### NEXT SESSION PROMPT — SUPERSEDED
+
+"Paco â Day 27. Phase III: job search automation. Use Alexandra + agent_tasks to find 5 right-level remote AI Engineer roles ($120-160k), create tasks for each, approve them, CC drafts applications."
+
+### Day 26 Late Session
+- user_profile table created in PostgreSQL (12 rows: identity, goals, preferences, context)
+- homelab_get_profile and homelab_update_profile MCP tools live (12 total tools)
+- agent.py modified: loads user_profile at start of every run, prepends to system prompt
+- Alexandra answered "who am I and what are we building?" correctly from profile — no tools, no prompting
+- Alexandra is now a companion with persistent identity context, not just a task executor
+
 ### NEXT SESSION PROMPT
-"Paco — Day 27. Phase III: job search automation. Use Alexandra + agent_tasks to find 5 right-level remote AI Engineer roles ($120-160k), create tasks for each, approve them, CC drafts applications."
-*Built by James Sloan Â· Denver, CO Â· 2026*
+"Paco — Day 27. Build Alexandra's proactive daily brief: every morning she wakes up, reads the user profile, checks the task queue, searches for relevant news/jobs, and sends a summary. This is Phase IV."
+*Built by James Sloan ÃÂ· Denver, CO ÃÂ· 2026*
 
 ### Day 26 Additions
 - cc_poller.py on Mac mini: polls agent_tasks every 60s, SSH tunnel workaround for macOS 15 NECP, json.dumps fix, rollback fix
 - launchd service com.ascension.cc-poller running with KeepAlive
-- Phase II-E verified: task created by Paco â approved â CC executes â completed autonomously
+- Phase II-E verified: task created by Paco Ã¢ÂÂ approved Ã¢ÂÂ CC executes Ã¢ÂÂ completed autonomously
 - Lesson: CC self-correcting prompts beat manual step-by-step for diagnosis tasks
