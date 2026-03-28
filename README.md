@@ -1,226 +1,153 @@
-# Project Ascension — AI Platform Engineering Portfolio
+# Alexandra — Autonomous AI Companion & Homelab Platform
 
-**James Sloan** · Former Senior Software Engineer at Optum (UnitedHealth Group), now building AI infrastructure systems. · Denver, CO · [github.com/santigrey](https://github.com/santigrey)
-
----
-
-## What This Is
-
-A self-hosted, production-grade AI platform built from scratch on homelab hardware — designed to mirror how real AI infrastructure companies architect their systems. Not a tutorial follow-along. Not a demo. A working platform that runs autonomously, finds real jobs from LinkedIn and Indeed, drafts outreach, and gets better every session.
-
-Built in 24 days during a career transition from enterprise infrastructure engineering into applied AI.
+> A self-hosted, production-grade AI platform with an autonomous agent named Alexandra — built from scratch on bare metal.
 
 ---
 
-## Live Screenshots
+## What Alexandra Does
 
-**Alexandra Web Dashboard** — platform status, agent history, run-agent interface:
-
-![Alexandra Dashboard](docs/screenshots/dashboard.png)
-
-**Alexandra CLI** — one-step job search returning 10 real results from LinkedIn/Indeed/Glassdoor:
-
-![Alexandra CLI](docs/screenshots/cli.png)
+- **Daily intelligence brief** — Wakes at 7am, reads Gmail and Google Calendar, generates a personalized brief: agenda, flagged emails, priorities, weather, and open tasks
+- **Autonomous task execution** — Polls a task queue continuously; executes approved tasks without human intervention via a Claude Code polling loop
+- **Learns from you** — Every approve/reject decision updates a persistent user profile; Alexandra adapts her behavior over time
+- **Persistent memory** — All conversations and agent runs stored as vector embeddings in pgvector; semantic search retrieves relevant context at inference time
+- **Real-time research** — Fetches live data via `web_fetch` and DuckDuckGo; researches companies, roles, and topics on demand
+- **Proactive notifications** — Sends email summaries and SMS alerts via Twilio when tasks complete or need attention
+- **Multi-turn chat** — Session-aware conversation history; context window managed across turns
+- **Knows who you are** — Persistent user profile tracks identity, goals, preferences, communication style, and long-term context
 
 ---
 
-## The Platform
-
-Three logical planes running on separate physical hardware — the same separation of concerns you find at companies like Weights & Biases, Modal, and Replicate.
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      CONTROL PLANE                          │
-│  Server 3 · 192.168.1.10                                   │
-│                                                             │
-│  FastAPI Orchestrator  :8000    MCP Server         :8001   │
-│  PostgreSQL + pgvector          Event sourcing             │
-│  Alexandra agent loop           Tool registry              │
-│  Web dashboard                  Memory write-back          │
-├─────────────────────────────────────────────────────────────┤
-│                     INFERENCE PLANE                         │
-│  Server 2 · 192.168.1.152                                  │
-│                                                             │
-│  Ollama runtime                 llama3.1:8b                │
-│  Tesla T4 GPU                   mxbai-embed-large          │
-│  Dedicated GPU node             No CPU contention          │
-├─────────────────────────────────────────────────────────────┤
-│                      OPERATOR LAYER                         │
-│  Thin Client 1 · Mac mini · Thin Client 2 (Windows)        │
-│                                                             │
-│  alexandra CLI                  Claude Desktop + Cowork    │
-│  Claude Code builds             homelab-mcp connected      │
-│  Git operations                 Job search workflow        │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                        OPERATOR LAYER                               │
+│                                                                     │
+│   Mac mini (CC builds)    JesAir (git / Paco)    Cortez (cowork)   │
+│         └──────────────────────┬────────────────────┘              │
+│                                │ HTTP / SSH                         │
+└────────────────────────────────┼────────────────────────────────────┘
+                                 │
+┌────────────────────────────────┼────────────────────────────────────┐
+│                    CONTROL PLANE — CiscoKid                         │
+│                      192.168.1.10                                   │
+│                                                                     │
+│   FastAPI orchestrator :8000      MCP server :8001                  │
+│   PostgreSQL + pgvector           agent_tasks table                 │
+│   Daily brief pipeline            message bus                       │
+│   ReAct loop + tool registry      user profile store               │
+└────────────────────────────────┬────────────────────────────────────┘
+                                 │ Ollama API
+┌────────────────────────────────┼────────────────────────────────────┐
+│                  INFERENCE PLANE — TheBeast                         │
+│                      192.168.1.152                                  │
+│                                                                     │
+│   Ollama                          mxbai-embed-large                 │
+│   Tesla T4 GPU                    Open WebUI                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+External integrations:
+  Claude Haiku 4.5 API  ·  Gmail API  ·  Google Calendar API
+  Twilio SMS  ·  DuckDuckGo search  ·  web_fetch
 ```
-
-**Why this architecture matters:** Inference is isolated from orchestration. State is externalized from models. Tools are registered, not hardcoded. Every agent run is traced with a `run_id`. This is how production AI systems are built.
-
----
-
-## Alexandra — Autonomous AI Agent
-
-The flagship product. Alexandra is a multi-step autonomous agent that reasons, uses tools, searches for jobs, drafts outreach, and writes results to memory — without human intervention.
-
-### How it works
-
-```
-User prompt
-    │
-    ▼
-Embed → pgvector recall (semantic memory)
-    │
-    ▼
-LLM call (llama3.1:8b via Server 2)
-    │
-    ├── Tool call? ──► Execute → append to history → loop
-    │
-    └── Final answer? ──► Write to pgvector → return
-```
-
-### Tool Registry
-
-| Tool | Source | What it does |
-|------|--------|--------------|
-| `job_search_jsearch` | JSearch / RapidAPI | Real jobs from LinkedIn, Indeed, Glassdoor |
-| `job_search` | Adzuna API | Fallback job search |
-| `web_search` | DuckDuckGo | General web research |
-| `draft_message` | Ollama | Writes personalized outreach messages |
-| `ping` | Internal | Connectivity check |
-
-### Production features
-
-- **ReAct loop** — up to 5 reasoning + action iterations per request
-- **Deduplication guard** — MD5 hash of (tool, args) prevents redundant calls
-- **JSON bleed guard** — regex scan catches embedded tool calls in final answers
-- **Event sourcing** — every step logged to PostgreSQL with `run_id`, `tool`, `args`, `result`
-- **Memory write-back** — responses embedded and stored in pgvector for future recall
-- **Trace endpoint** — `/trace/{run_id}` returns full chronological event log
-
-### Interfaces
-
-```bash
-# CLI — runs on Mac mini, hits Server 3:8000/agent
-alexandra "find remote AI Platform Engineer jobs"
-alexandra "find remote MLOps Engineer jobs"
-
-# HTTP API
-POST http://192.168.1.10:8000/agent
-{"prompt": "find remote AI Platform Engineer jobs"}
-
-# Web dashboard
-http://192.168.1.10:8000/dashboard
-```
-
----
-
-## Real Results
-
-Alexandra found these roles autonomously in a single agent run (March 2026):
-
-| Role | Company | Salary | Source |
-|------|---------|--------|--------|
-| Remote Full-Stack AI Engineer: Deploy Production ML | Pavago | $100k–$130k | LinkedIn |
-| HPC - AI and ML Platform Engineer | Ford Motor Company | $113k–$191k | LinkedIn |
-| Staff AI / MLOps Engineer - Clinical AI | IMO Health | $170k–$250k | Indeed |
-| Remote Senior MLOps Engineer: Real-Time ML Pipelines | Quanata | — | LinkedIn |
-| Senior AI Engineer, World Foundation Models & Video | NVIDIA | $184k–$288k | LinkedIn |
-| Founding AI Systems Engineer (100% Remote) | Close | $140k–$210k | Indeed |
-
-Outreach was drafted and sent to True Anomaly (Staff Platform Engineer AI, $175k–$250k) using the `draft_message` tool — with mission-specific language pulled from autonomous company research.
-
----
-
-## Web Dashboard
-
-A dark-theme terminal-aesthetic dashboard served directly by the FastAPI orchestrator.
-
-- Live platform status badges (API, PostgreSQL, Ollama, worker)
-- Last 10 agent runs with prompts, answers, timestamps and run IDs
-- Run Agent input — fires the `/agent` endpoint inline
-- Accessible from any device on the LAN
-
----
-
-## homelab-mcp
-
-A custom MCP (Model Context Protocol) server running on Server 3, exposing homelab tools to any MCP-compatible client — including Claude Desktop, Claude Code, and Cowork.
-
-**Tools exposed:**
-
-| Tool | Description |
-|------|-------------|
-| `homelab_ssh_run` | Execute shell commands on any homelab node |
-| `homelab_file_read` | Read files from any node via SSH |
-| `homelab_memory_search` | Semantic search against pgvector memory |
-| `homelab_memory_store` | Write new entries to memory |
-| `homelab_agent_status` | Health check across all services |
-
-**In practice:** Cowork connected to homelab-mcp and autonomously diagnosed and fixed an Ollama health probe bug — without being asked. It SSHed into Server 2, identified the empty response issue, rewrote the probe, and restarted the service.
-
----
-
-## Agent OS
-
-An always-running background system that scans, classifies, and reports on the local AI project tree every 15 minutes.
-
-- Indexes 203 files across 10 projects in 6 categories
-- Categories: `AI_Infra`, `Agents`, `Career`, `Venice`, `Playground`, `Notes`
-- Generates `inventory.md`, `timeline.md`, `overview_all.md`
-- Runs as a macOS Login Item — survives reboots, never needs manual restart
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Orchestration | FastAPI, Python 3.11, uvicorn |
-| Memory | PostgreSQL 15, pgvector, psycopg3 |
-| Inference | Ollama, llama3.1:8b, mxbai-embed-large |
-| Agent protocol | Custom ReAct loop, MCP (FastMCP 1.26) |
-| Job data | JSearch (RapidAPI), Adzuna API |
-| Web search | duckduckgo-search |
-| Monitoring | Custom healthz/readyz endpoints, event log |
-| Infrastructure | Ubuntu 22.04, systemd, SSH, NVIDIA T4 |
-| Operator tooling | Claude Code, Claude Desktop, Cowork |
+| AI / ML | Infrastructure |
+|---|---|
+| Claude Haiku 4.5 (reasoning + generation) | Python 3.11 / FastAPI |
+| Ollama (local model serving) | PostgreSQL 15 + pgvector |
+| pgvector (semantic memory) | Docker / systemd |
+| mxbai-embed-large (embeddings) | Ubuntu Server 22.04 |
+| ReAct agent pattern | SSH key-based mesh |
+| MCP protocol (tool bridge) | launchd + cron |
+| SentenceTransformers | macOS Login Item automation |
 
 ---
 
-## Related: Claude Mastery Curriculum
+## Agent Network
 
-**[github.com/santigrey/claude-mastery](https://github.com/santigrey/claude-mastery)**
+Alexandra operates as a networked agent system, not a single process.
 
-A companion repo built in parallel — 20 hours covering the Anthropic API from raw SDI calls to production agent systems. Streaming, structured outputs, conversation memory, tool use, parallel tool calling, MCP integration, ReAct pattern from scratch, task planning agents, production hardening, hybrid inference, and eval harnesses with 100% pass rate.
+**Task lifecycle:**
 
-The two repos are complementary: `claude-mastery` demonstrates API fluency and engineering fundamentals. `ai-operator` demonstrates what those fundamentals look like deployed on real infrastructure.
+```
+Paco (Claude Code) → agent_tasks table → CC polling loop → tool execution → result stored
+                              ↑
+                     dashboard approve/reject
+                              ↑
+                     user profile update (feedback loop)
+```
 
----
+**Control plane services:**
 
-## Architectural Principles
+| Service | Role |
+|---|---|
+| FastAPI `:8000` | Orchestrator — `/agent`, `/ask`, `/dashboard`, `/healthz` |
+| MCP server `:8001` | Tool bridge — 12 tools exposed over HTTP |
+| PostgreSQL | State store — tasks, memory, messages, user profile |
+| pgvector | Semantic layer — cosine similarity search over all agent memory |
 
-These match how production AI platforms are actually built:
+**MCP tool registry (12 tools):**
 
-- **Inference isolation** — Model execution separated from orchestration logic
-- **State externalization** — pgvector and PostgreSQL hold all state; the model holds none
-- **Explicit service boundaries** — each plane has one job and fails independently
-- **Tool-capable runtime** — agent behavior extended via registered tools, not prompt hacks
-- **Full observability** — every request has a `run_id`, every step logged, every trace queryable
-- **Production-style health checks** — `/healthz` and `/readyz` endpoints mirror real deployment patterns
-
----
-
-## Why This Matters
-
-Most people applying for AI engineering roles have called the OpenAI API and built a chatbot. This platform demonstrates:
-
-1. **Systems thinking** — three-plane architecture with deliberate separation of concerns
-2. **Infrastructure depth** — systemd services, GPU binding, SSH key management, LAN networking
-3. **Agent design** — ReAct loop, tool registry, memory, deduplication, event sourcing
-4. **Production mindset** - health checks, trace endpoints, error guards, observability
-5. **Operational discipline** — 24 days of daily commits, SESSION.md tracking, SOP documentation
-6. **Real output** - the platform found real jobs, drafted real outreach, and sent it
+`homelab_ssh_run` · `homelab_file_read` · `homelab_memory_search` · `homelab_memory_store` · `homelab_agent_status` · `homelab_create_task` · `homelab_list_tasks` · `homelab_update_task` · `homelab_send_message` · `homelab_read_messages` · `homelab_get_profile` · `homelab_update_profile`
 
 ---
 
-*Built by James Sloan · Denver, CO · 2026*
+## How It Works
+
+**ReAct loop.** Alexandra runs a standard Reason → Act → Observe cycle. Each turn, Claude Haiku receives the current task, the tool registry, and relevant memory retrieved via pgvector similarity search. It emits a tool call or a final answer. The orchestrator executes the tool, appends the result to the context window, and loops. A `seen_calls` guard prevents redundant tool calls within a single run.
+
+**Daily brief pipeline.** A cron trigger fires at 7am. Alexandra calls the Gmail API for unread messages, the Google Calendar API for the day's events, and checks the open task queue. She generates a structured brief — agenda, flagged items, priorities — and delivers it via email and optionally SMS through Twilio. The brief is also stored as a memory entry in pgvector, making it retrievable in future sessions.
+
+**Persistent user profile.** Every interaction is an opportunity to learn. When a user approves or rejects a task, the outcome is written back to a `user_profile` table keyed by category and attribute. Over time this profile captures communication preferences, domain expertise, recurring goals, and behavioral patterns. The profile is injected into every agent context window as a system-level brief.
+
+**Operator tooling.** `agentctl.py` is the CLI layer — it scans the project tree (rooted in iCloud Drive), classifies each project into one of six canonical categories (`AI_Infra`, `Agents`, `Career`, `Venice`, `Playground`, `Notes`), generates delta reports of changed files, and embeds documents into pgvector for cross-session search. A persistent background loop (macOS Login Item) runs `agentctl refresh` every 15 minutes, keeping the operator's view of the platform current.
+
+---
+
+## Portfolio Signal
+
+Building Alexandra required the full stack of an AI platform engineer: designing a distributed three-plane system, integrating LLM APIs into a production service loop, implementing semantic memory with pgvector, wiring external APIs (Gmail, Calendar, Twilio), and operating real hardware under real constraints. This wasn't a tutorial project or a hosted demo — it runs on bare metal, survives reboots, handles concurrency, and learns from live feedback. The architectural decisions (inference plane isolation, MCP as a tool protocol boundary, event-sourced memory, operator/agent separation) reflect the same concerns that appear in production AI infrastructure at scale. It demonstrates that I can design, build, operate, and iterate on an end-to-end AI platform independently — which is exactly the job.
+
+---
+
+## Build Log
+
+| Phase | Days | What Was Built |
+|---|---|---|
+| **Phase I — Runtime Core** | 1–7 | FastAPI orchestrator, PostgreSQL schema, pgvector integration, tool registry, single-step ReAct loop, `/agent` endpoint |
+| **Phase I — Memory & Tools** | 8–14 | Event-sourced memory normalized to `EVENT` envelopes, `/ask` multi-turn endpoint, `seen_calls` deduplication, `/trace/<run_id>` debug endpoint, Phase I frozen at `47c1456` |
+| **Phase II-A — MCP Bridge** | 15–20 | MCP server on CiscoKid `:8001`, 12 tools registered, SSH mesh to all homelab nodes, Claude Desktop connected, per-host SSH user support |
+| **Phase II-B — Dashboard & Alexandra** | 21–22 | Dark-theme web dashboard (platform badges, agent run history, inline run input), Alexandra CLI on Mac mini, CORS middleware, daily brief pipeline scaffolded |
+| **Phase II-C — Integrations** | 23–28 | Gmail API + Google Calendar API wired, Twilio SMS, DuckDuckGo research tool, web_fetch tool, user profile feedback loop |
+| **Phase II-D — Operator Layer** | 29–35 | `agentctl.py` project scanner/classifier, delta reports, pgvector document indexing, iCloud-aware refresh loop, job search pipeline integrated |
+
+---
+
+## Running the Operator CLI
+
+```bash
+# From repo root
+python3 agentctl.py status
+python3 agentctl.py refresh --root ~/path/to/projects
+python3 agentctl.py search --query "vector database memory"
+python3 agentctl.py delta --root ~/path/to/projects
+```
+
+## Homelab Topology
+
+| Host | IP | Role |
+|---|---|---|
+| CiscoKid | 192.168.1.10 | Control plane (FastAPI, PostgreSQL, MCP) |
+| TheBeast | 192.168.1.152 | Inference (Ollama, Tesla T4) |
+| SlimJim | 192.168.1.40 | General compute |
+| KaliPi | 192.168.1.254 | Edge / security tooling |
+| Mac mini | 192.168.1.13 | Operator (Alexandra CLI, CC builds) |
+
+---
+
+*Built by James Sloan — AI Systems Engineer*
+*Project Ascension · Day 35 of 60*
