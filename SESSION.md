@@ -1,56 +1,69 @@
 # SESSION.md — Project Ascension
-## Date: 2026-03-30 (Day 41 of 60)
+## Date: 2026-03-30 (Day 43 of 60)
 ## Engineer: James Sloan | Denver, CO
 
 ---
 
 ## PLATFORM STATUS
 
-All systems operational. Alexandra running on Claude Sonnet 4 (conversation) + Haiku 4.5 (tools/vision).
+All systems operational.
 
-- Control Plane: Server 3 (192.168.1.10) — FastAPI :8000, PostgreSQL + pgvector, nginx HTTPS :443
+- Control Plane: Server 3 (192.168.1.10) — FastAPI :8000, nginx HTTPS :443, PostgreSQL + pgvector
 - Tailscale: Server 3: 100.115.56.89, JesAir: 100.86.193.45, iPhone: 100.117.217.120, Mac mini + Cortez: connected
 - Dashboard: https://192.168.1.10/dashboard (LAN) | https://100.115.56.89/dashboard (anywhere)
-- PWA installed as desktop app on Cortez
+- PWA installed on Cortez
 
 ---
 
-## ALEXANDRA CAPABILITIES (Day 41 — end of day)
+## SERVICES (all active, Restart=always)
 
-CORE:
-- Sonnet 4 brain for conversation, Haiku for tools/vision/execution
-- Dynamic day counter from project_start_date (2026-02-18)
-- Warm, direct persona — no bullets, no asterisks, no markdown, 2-4 sentence responses
-- Never narrates career history unprompted
-- Cross-session semantic memory via pgvector
+| Service | Function |
+|---|---|
+| orchestrator | Alexandra brain, chat, voice, vision — Sonnet 4 conversation |
+| alexandra-telegram | Telegram bot — text + voice in/out |
+| recruiter-watcher | Gmail poll every 15min, Telegram alert on real recruiter email |
+| daily_brief cron | 7am UTC morning briefing |
+
+---
+
+## ALEXANDRA CAPABILITIES (Day 43)
+
+VOICE:
+- Dashboard: mic button, Whisper STT, ElevenLabs TTS (Jane voice)
+- Telegram: send voice note → transcribe → think → reply with voice message
+- Click-to-start overlay unlocks Chrome autoplay on dashboard load
+- Auto-greet: webcam capture + describe James + speak on load
 
 AWARENESS:
-- get_live_context tool: real-time time, weather (OpenWeatherMap), markets (S&P/NASDAQ/BTC via stooq), headlines (NYT RSS)
-- get_emails + get_calendar: direct Gmail and Google Calendar access
-- Daily brief at 7am via cron
-- Home layout context in every vision call (kitchen/dining room vs office)
+- get_live_context: real-time time, weather (OpenWeatherMap), markets (stooq), headlines (NYT RSS)
+- get_emails + get_calendar: direct Gmail and Google Calendar
+- Daily brief at 7am
+- Home layout context in vision — kitchen/dining room vs office
+- Device-aware (Windows = Cortez = downstairs)
 
-INTERFACE:
-- Click-to-start overlay (fixes Chrome autoplay)
-- Auto-greet on load: webcam capture, describe James, speak via ElevenLabs (Jane voice)
-- Random time-of-day aware vision greeting prompts — no repetition
-- Voice interface: Whisper STT + ElevenLabs TTS
-- Hamburger menu: Daily Brief, Today Activity (last 24h only), Agent Tasks
-- Telegram bot: @alexandra_ascension_bot
-- Accessible from anywhere via Tailscale
+PROACTIVE:
+- recruiter-watcher: real 3-gate filter — domain blacklist + no-reply filter + keyword match
+- Fires Telegram notification within 15min of real recruiter email
+- TELEGRAM_CHAT_ID: 8751426822
+
+PERSONA:
+- Sonnet 4 brain — warm, direct, no bullets/asterisks/markdown
+- Dynamic day counter from project_start_date (2026-02-18)
+- Random time-of-day vision greetings — no repetition
+- Never narrates career history unprompted
 
 ---
 
 ## KEY FILES
 
-- Orchestrator: /home/jes/control-plane/orchestrator/app.py (Server 3)
+- Orchestrator: /home/jes/control-plane/orchestrator/app.py
 - Dashboard: /home/jes/control-plane/orchestrator/ai_operator/dashboard/dashboard.py
 - Tool registry: /home/jes/control-plane/orchestrator/ai_operator/tools/registry.py
 - Voice: /home/jes/control-plane/voice.py — Jane voice ID: RILOU7YmBhvwJGDGjNmP
-- Telegram: /home/jes/control-plane/telegram_bot.py
-- CC poller: /Users/jes/bin/cc_poller.py (Mac mini)
+- Telegram bot: /home/jes/control-plane/telegram_bot.py
+- Recruiter watcher: /home/jes/control-plane/recruiter_watcher.py
 - Applications: /Users/jes/ai-operator/job-search/applications.csv — 57 entries
-- Weather API key: OPENWEATHER_API_KEY in /home/jes/control-plane/.env
+- Keys in .env: ANTHROPIC_API_KEY, ELEVENLABS_API_KEY, OPENWEATHER_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 ---
 
@@ -66,19 +79,18 @@ INTERFACE:
 
 ## TODO (priority order)
 
-1. Proactive notifications — recruiter email triggers Telegram alert immediately
-2. Telegram voice messages — send voice notes, get voice replies
-3. Voice latency reduction — Whisper tiny model
-4. Find NewsAPI key (stock trader app on TheBeast) for better headlines
-5. Job applications — Friday 4/4
-6. Interview prep — Lirio and Cohere pending
-7. Twilio toll-free verification (SMS)
+1. Voice latency reduction — Whisper tiny model
+2. Find NewsAPI key on TheBeast for better headlines
+3. Job applications — Friday 4/4 (3 minimum)
+4. Interview prep — Lirio and Cohere pending
+5. Twilio toll-free verification (SMS)
+6. Wake word / always-on listening
 
 ---
 
 ## NEXT SESSION PROMPT
 
-"Paco — Day 42. Build proactive notifications: when a recruiter emails James, Alexandra alerts him on Telegram immediately. Then Telegram voice messages."
+"Paco — Day 44. Reduce voice latency — swap Whisper base for tiny model. Then job applications."
 
 ---
 
