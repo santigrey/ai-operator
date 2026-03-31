@@ -13,6 +13,11 @@
 ## SERVICES (CiscoKid 192.168.1.10)
 orchestrator: active | alexandra-telegram: active | recruiter-watcher: active | calendar-alert: active
 
+## COMPLETED DAY 47
+- Conversation memory LIVE: short-term (chat_history PostgreSQL) + long-term (TheBeast mxbai embeddings -> pgvector)
+- Memory architecture correct: TheBeast owns all embedding compute, CiscoKid owns storage, Anthropic owns reasoning
+- Cross-session recall verified: fresh session retrieved Kawasaki Ninja from pgvector
+
 ## PHASE 1 REMAINING
 1. Conversation memory across sessions via pgvector
 2. Morning briefing - 7am Telegram spoken daily brief
