@@ -18,6 +18,10 @@ orchestrator: active | alexandra-telegram: active | recruiter-watcher: active | 
 - Memory architecture correct: TheBeast owns all embedding compute, CiscoKid owns storage, Anthropic owns reasoning
 - Cross-session recall verified: fresh session retrieved Kawasaki Ninja from pgvector
 
+- Job pipeline service LIVE on SlimJim: syncs CSV every 15min, upserts to CiscoKid postgres, Telegram alerts on status changes + follow-up nudges
+- get_job_pipeline tool LIVE: Alexandra reports full pipeline status conversationally
+- SlimJim SSH key authorized on Mac mini for CSV sync
+- SlimJim role defined: job pipeline node, MQTT broker, observability hub
 ## PHASE 1 REMAINING
 1. Conversation memory across sessions via pgvector
 2. Morning briefing - 7am Telegram spoken daily brief
