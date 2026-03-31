@@ -13,3 +13,8 @@ data/last_scan.json
 *.log
 *.lock
 sample_*.txt
+google_credentials.json
+google_token.json
+notified_emails.json
+*.env
+.env*

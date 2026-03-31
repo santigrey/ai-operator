@@ -7,6 +7,9 @@ import shlex
 from datetime import datetime
 from collections import Counter
 
+from dotenv import load_dotenv
+load_dotenv('/home/jes/control-plane/.env')
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_PATH = os.path.join(BASE_DIR, "data", "agent_state.json")
 SNAPSHOT_PATH = os.path.join(BASE_DIR, "data", "last_scan.json")
@@ -17,7 +20,7 @@ INDEX_CONTENT_BYTES = 8 * 1024
 PG_HOST = "192.168.1.10"
 PG_PORT = 5432
 PG_USER = "admin"
-PG_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'secure')
+PG_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'adminpass')
 PG_DBNAME = "controlplane"
 
 

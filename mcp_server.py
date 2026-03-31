@@ -5,6 +5,7 @@ Runs on CiscoKid (192.168.1.10), port 8001.
 """
 
 import json
+import os
 import subprocess
 import uuid
 from typing import Optional
@@ -12,14 +13,17 @@ from typing import Optional
 import psycopg2
 import requests
 import uvicorn
+from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field, ConfigDict
+
+load_dotenv('/home/jes/control-plane/.env')
 
 DB_HOST       = "127.0.0.1"
 DB_PORT       = 5432
 DB_NAME       = "controlplane"
 DB_USER       = "admin"
-DB_PASS       = os.getenv('POSTGRES_PASSWORD', 'secure')
+DB_PASS       = os.getenv('POSTGRES_PASSWORD', 'adminpass')
 OLLAMA_URL    = "http://192.168.1.152:11434"
 EMBED_MODEL   = "mxbai-embed-large"
 SSH_USER      = "jes"
