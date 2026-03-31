@@ -22,6 +22,12 @@ Anthopic API: Sonnet 4 (reasoning brain), Haiku (vision)
 orchestrator | alexandra-telegram | recruiter-watcher | calendar-alert | homelab-mcp
 job-pipeline (SlimJim)
 
+- Agent network LIVE: CiscoKid publishes MQTT -> SlimJim agent_bus -> Alexandra responds
+- Mosquitto open to LAN 0.0.0.0:1883
+- paho-mqtt on CiscoKid venv + SlimJim
+- mqtt_publisher.py on CiscoKid: task_created, job_update, system_event, nudge
+- Full loop verified: publish -> receive -> Alexandra query -> Sonnet response
+
 ## NEXT SESSION
 Paco - Day 48. Phase 2: agent network on SlimJim MQTT, proactive nudges, wake word.
 
